@@ -86,9 +86,9 @@ void loop() {
   // Padding format from: https://stackoverflow.com/a/5325211
   /* Display the results (acceleration is measured in m/s^2) */
   Serial.print("Acc ");
-  Serial.printf("X: % 05.2f ", accel.acceleration.x);
-  Serial.printf("Y: % 05.2f ", accel.acceleration.y);
-  Serial.printf("Z: % 05.2f ", accel.acceleration.z);
+  Serial.printf("X: % 06.2f ", accel.acceleration.x);
+  Serial.printf("Y: % 06.2f ", accel.acceleration.y);
+  Serial.printf("Z: % 06.2f ", accel.acceleration.z);
   Serial.print(" m/s^2 ");
 
   Serial.print("   Gyro ");
@@ -98,9 +98,9 @@ void loop() {
   Serial.print(" rads/s ");
 
   Serial.print("   Mag ");
-  Serial.printf("X: % 05.2f ", mag.magnetic.x);
-  Serial.printf("Y: % 05.2f ", mag.magnetic.y);
-  Serial.printf("Z: % 05.2f ", mag.magnetic.z);
+  Serial.printf("X: % 06.2f ", mag.magnetic.x);
+  Serial.printf("Y: % 06.2f ", mag.magnetic.y);
+  Serial.printf("Z: % 06.2f ", mag.magnetic.z);
   Serial.print(" uT");
 
   Serial.print("   Temp ");
