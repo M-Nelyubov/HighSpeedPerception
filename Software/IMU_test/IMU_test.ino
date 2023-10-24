@@ -6,20 +6,9 @@
 #include <Wire.h>
 
 Adafruit_ICM20948 icm;
-// uint16_t measurement_delay_us = 65535; // time between measurements
 
-void setup() {
-  Serial.begin(115200);
-  while (!Serial) ;
-  Serial.println("Starting IMU test code");
-  if(!icm.begin_I2C()){
-    Serial.println("Failed to establish I2C communication with IMU");
-    while(true) ;
-  }
-
+void printAccelerometerConfig(){
   // Accelerometer
-  Serial.println("ICM20948 Found!");
-  // icm.setAccelRange(ICM20948_ACCEL_RANGE_16_G);
   Serial.print("Accelerometer range set to: ");
   switch (icm.getAccelRange()) {
   case ICM20948_ACCEL_RANGE_2_G:
@@ -35,10 +24,18 @@ void setup() {
     Serial.println("+-16G");
     break;
   }
-  Serial.println("OK");
 
-  // Gyro
-  // icm.setGyroRange(ICM20948_GYRO_RANGE_2000_DPS);
+
+  uint16_t accel_divisor = icm.getAccelRateDivisor();
+  float accel_rate = 1125 / (1.0 + accel_divisor);
+
+  Serial.print("Accelerometer data rate divisor set to: ");
+  Serial.println(accel_divisor);
+  Serial.print("Accelerometer data rate (Hz) is approximately: ");
+  Serial.println(accel_rate);
+}
+
+void printGyroConfig(){
   Serial.print("Gyro range set to: ");
   switch (icm.getGyroRange()) {
   case ICM20948_GYRO_RANGE_250_DPS:
@@ -55,15 +52,6 @@ void setup() {
     break;
   }
 
-  // Accelerometer
-  //  icm.setAccelRateDivisor(4095);
-  uint16_t accel_divisor = icm.getAccelRateDivisor();
-  float accel_rate = 1125 / (1.0 + accel_divisor);
-
-  Serial.print("Accelerometer data rate divisor set to: ");
-  Serial.println(accel_divisor);
-  Serial.print("Accelerometer data rate (Hz) is approximately: ");
-  Serial.println(accel_rate);
 
   uint8_t gyro_divisor = icm.getGyroRateDivisor();
   float gyro_rate = 1100 / (1.0 + gyro_divisor);
@@ -72,8 +60,20 @@ void setup() {
   Serial.println(gyro_divisor);
   Serial.print("Gyro data rate (Hz) is approximately: ");
   Serial.println(gyro_rate);
+}
 
+void setup() {
+  Serial.begin(115200);
+  while (!Serial) ;
+  Serial.println("Starting IMU test code");
+  if(!icm.begin_I2C()){
+    Serial.println("Failed to establish I2C communication with IMU");
+    while(true) ;
+  }
 
+  Serial.println("ICM20948 Found!");
+  printAccelerometerConfig();
+  printGyroConfig();
 }
 
 void loop() {
@@ -106,8 +106,6 @@ void loop() {
   Serial.print("   Temp ");
   Serial.print(temp.temperature);
   Serial.println(" C");
-
-
 
   delay(500);
 }
