@@ -5,7 +5,26 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
+#define dt_ms 5.0
+#define dt_s dt_ms / 1000.0
+
 Adafruit_ICM20948 icm;
+
+// orientation angles
+float rx = 0.0;
+float ry = 0.0;
+float rz = 0.0;
+
+// position coordinates
+float pxp = 0.0;
+float pyp = 0.0;
+float pzp = 0.0;
+
+// position velocity
+float pxv = 0.0;
+float pyv = 0.0;
+float pzv = 0.0;
+
 
 void printAccelerometerConfig(){
   // Accelerometer
@@ -97,15 +116,26 @@ void loop() {
   Serial.printf("Z: % 05.2f ", gyro.gyro.z);
   Serial.print(" rads/s ");
 
-  Serial.print("   Mag ");
-  Serial.printf("X: % 06.2f ", mag.magnetic.x);
-  Serial.printf("Y: % 06.2f ", mag.magnetic.y);
-  Serial.printf("Z: % 06.2f ", mag.magnetic.z);
-  Serial.print(" uT");
+  rx += gyro.gyro.x * dt_s;
+  ry += gyro.gyro.y * dt_s;
+  rz += gyro.gyro.z * dt_s;
+
+  Serial.print("  Angle ");
+  Serial.printf("X: % 05.2f ", rx);
+  Serial.printf("Y: % 05.2f ", ry);
+  Serial.printf("Z: % 05.2f ", rz);
+  Serial.print(" rads");
+
+  // Serial.print("   Mag ");
+  // Serial.printf("X: % 06.2f ", mag.magnetic.x);
+  // Serial.printf("Y: % 06.2f ", mag.magnetic.y);
+  // Serial.printf("Z: % 06.2f ", mag.magnetic.z);
+  // Serial.print(" uT");
 
   Serial.print("   Temp ");
   Serial.print(temp.temperature);
-  Serial.println(" C");
+  Serial.print(" C");
 
-  delay(500);
+  Serial.println("");
+  delay(dt_ms);
 }
