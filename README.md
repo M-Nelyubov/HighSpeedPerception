@@ -59,3 +59,15 @@ Resolution:
 1. Attempt to flash again.
 
 This procedure has so far been successful in resolving all instances of this issue.
+
+
+## Reflashing board firmware
+The following article provides instructions on how to flash the firmware for MicroPython onto the Xiao ESP32S3 Sense:
+https://wiki.seeedstudio.com/XIAO_ESP32S3_Micropython/
+
+In order to factory reset the firmware on the ESP32-S3 Sense, run the following command with esptool installed:
+```
+esptool --chip esp32-s3 erase_flash
+```
+Full instructions:
+https://randomnerdtutorials.com/esp32-erase-flash-memory/
