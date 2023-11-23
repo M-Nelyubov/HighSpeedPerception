@@ -49,7 +49,7 @@ void computeFlow(
 
     // // Diagnosing that the pyramid works
     // drawFullyStackedPyramid(n_pyramid, u_frame);
-    printf("Entering the great pyramid\n");
+    // printf("Entering the great pyramid\n");
     computeUVpyramid(p_pyramid,n_pyramid, u_frame, v_frame);
 
     // Cleanup
@@ -59,12 +59,13 @@ void computeFlow(
 
 void computeUVpyramid(uint8_t **p_pyramid, uint8_t **n_pyramid, int16_t *u_frame, int16_t *v_frame, int rows, int cols, int depth, int layer){
     computeUVlayerBelow(p_pyramid, n_pyramid, u_frame, v_frame, rows, cols, depth, layer+1);
+    // printf("Computing top layer of pyramid\n");
     computeUV(p_pyramid[0], n_pyramid[0], u_frame, v_frame, rows, cols);
 }
 
 void computeUVlayerBelow(uint8_t **p_pyramid, uint8_t **n_pyramid, int16_t *u_frame, int16_t *v_frame, int rows, int cols, int depth, int layer){
     if(layer > depth) return;
-    printf("Going up, %d\n",layer);
+    // printf("Going up, %d\n",layer);
 
     int sr = rows / (2);  // scaled-down row
     int sc = cols / (2);  // scaled-down col
@@ -77,7 +78,7 @@ void computeUVlayerBelow(uint8_t **p_pyramid, uint8_t **n_pyramid, int16_t *u_fr
 
     // Recursive call time
     computeUVlayerBelow(p_pyramid, n_pyramid, mini_u_frame, mini_v_frame, sr, sc, depth, layer+1);
-    printf("Coming down, computing layer: %d\t dims: [%d,%d]\n", layer, rows, cols);
+    // printf("Coming down, computing layer: %d\t dims: [%d,%d]\n", layer, rows, cols);
 
     // cout << "Computing layer 1 UV" << endl;
     computeUV(p_pyramid[layer], n_pyramid[layer], mini_u_frame, mini_v_frame, sr, sc);
@@ -110,6 +111,7 @@ void printComposition(int16_t *data, int length){
 }
 
 void upscale(int16_t *src, int16_t *dst, int src_rows, int src_cols){
+    // Scales up the flow computed in a small frame up to a quadrupled frame (x2 in each dim) with the flow contribution doubled
     for(int r = 0; r< src_rows; r++){
         for (int c=0; c< src_cols; c++){
             int i = r*src_cols + c;
@@ -148,16 +150,18 @@ void augment_frame(uint8_t *frame, int16_t *u_augment_mask, int16_t *v_augment_m
 }
 
 void computeUV(uint8_t *p_frame, uint8_t *n_frame, int16_t *u_frame, int16_t *v_frame, int rows, int cols){
-    printf("Computing U,V on (%dx%d) frame.\n",rows,cols);
-
+    // printf("Computing U,V on (%dx%d) frame.\n",rows,cols);
+    // printf("Allocating gradient matrices\n");
     auto grad_x = new int8_t [rows * cols];
     auto grad_y = new int8_t [rows * cols];
     auto grad_t = new int8_t [rows * cols];
     
+    // printf("Computing gradients\n");
     computeGrad(p_frame, n_frame, grad_x, rows, cols, 1,0,0);
     computeGrad(p_frame, n_frame, grad_y, rows, cols, 0,1,0);
     computeGrad(p_frame, n_frame, grad_t, rows, cols, 0,0,1);
     
+    // printf("Allocating product storage\n");
     auto IxIx = new int16_t [rows * cols];
     auto IxIy = new int16_t [rows * cols];
     auto IyIy = new int16_t [rows * cols];
@@ -165,6 +169,7 @@ void computeUV(uint8_t *p_frame, uint8_t *n_frame, int16_t *u_frame, int16_t *v_
     auto IyIt = new int16_t [rows * cols];
     
     
+    // printf("Calculating products\n");
     for(int i=0; i<rows * cols; i++){
         IxIx[i] = grad_x[i]*grad_x[i];
         IxIy[i] = grad_y[i]*grad_x[i];
@@ -182,6 +187,7 @@ void computeUV(uint8_t *p_frame, uint8_t *n_frame, int16_t *u_frame, int16_t *v_
     int sIxx, sIxy, sIyy, sIxt, sIyt;
 
     // compute sums at each offset
+    // printf("Calculating matrix outcome\n");
     for (int by = 0; by < rows; by+=OF_FRAME_SKIPS){
         for (int bx = 0; bx < cols; bx+=OF_FRAME_SKIPS){
             sIxx = sIxy = sIyy = sIxt = sIyt= 0;  // reset for this frame
@@ -201,6 +207,7 @@ void computeUV(uint8_t *p_frame, uint8_t *n_frame, int16_t *u_frame, int16_t *v_
                 }
             }
 
+            // printf("Solving matrix for point: (%d,%d)\n",bx, by);
             auto uv = new int8_t[2];
             solveMatrixATAATb(sIxx, sIxy, sIyy, sIxt, sIyt, uv);
 
@@ -263,7 +270,6 @@ void drawPyramid(uint8_t **pyramid, int16_t *canvas, int layer, int r_offset, in
         int c = (i % cols) + c_offset;
         canvas[r * IMAGE_COLS + c] = pyramid[layer][i] - 0x80;
     }
-
 }
 
 int getPyramidSize(uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
@@ -275,7 +281,7 @@ int getPyramidSize(uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
     }
     
     pyramidSize -= 2; // cut off the singularity top
-    printf("pyramid size: %d\n", pyramidSize);
+    // printf("pyramid size: %d\n", pyramidSize);
     return pyramidSize;
 }
 
@@ -289,7 +295,7 @@ uint8_t **generatePyramid(uint8_t frame[IMAGE_ROWS * IMAGE_COLS], int pyramidSiz
     }
     pyramid[0] = baseImage;
 
-    printf("Copied base layer\n");
+    // printf("Copied base layer\n");
 
 
     for (int i=1; i<pyramidSize; i++){
