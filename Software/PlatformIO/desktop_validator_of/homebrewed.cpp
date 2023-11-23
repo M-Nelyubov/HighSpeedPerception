@@ -8,8 +8,8 @@
 
 using namespace cv;
 
-#define IMAGE_ROWS 480
-#define IMAGE_COLS 640
+#define IMG_SIZE Size(IMAGE_COLS, IMAGE_ROWS)
+#define DISP_SIZE Size(4*IMAGE_COLS, 4*IMAGE_ROWS)
 
 int hiClips = 0;
 int loClips = 0;
@@ -79,9 +79,13 @@ int main(){
         cout << "Starting camera feed!" << endl;
     }
 
-    Mat frame1, prvs;
+    Mat frame1, grey, prvs;
     capture >> frame1;
-    cvtColor(frame1, prvs, COLOR_BGR2GRAY);
+    cvtColor(frame1, grey, COLOR_BGR2GRAY);
+    resize(grey, prvs, IMG_SIZE);
+
+    imshow("Smaller:", prvs);
+    waitKey(0);
 
     // // Used to determine new frame state
     // printf("(%d,%d)\r\n", prvs.rows, prvs.cols);
@@ -97,7 +101,7 @@ int main(){
     // initZero(v_frame);
 
     while(true){
-        Mat frame2, next;
+        Mat frame2, grey2, next;
         time_t t = time(0);
         // cout << "Capturing frame at t=" << t << endl;    // fps test.  For HAL-9000, fps=20
         capture >> frame2;
@@ -105,7 +109,8 @@ int main(){
             cout << "End of content" << endl;
             break;
         }
-        cvtColor(frame2, next, COLOR_BGR2GRAY);
+        cvtColor(frame2, grey2, COLOR_BGR2GRAY);
+        resize(grey2, next, IMG_SIZE);
         
         // convert the matrixes into 2d arrays for basic processing
         matToFrame(prvs, p_frame); 
