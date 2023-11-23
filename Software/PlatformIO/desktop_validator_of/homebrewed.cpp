@@ -1,0 +1,130 @@
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/videoio.hpp>
+#include <opencv2/video.hpp>
+#include "opticalFlow.hpp"
+#include <ctime>
+
+using namespace cv;
+
+#define IMAGE_ROWS 480
+#define IMAGE_COLS 640
+
+int hiClips = 0;
+int loClips = 0;
+
+uint8_t clip(int16_t data){
+    if (data > 0){
+        hiClips++;
+        return 0xff;
+    }
+    if (data < 0){
+        loClips++;
+        return 0;
+    }
+    return (int8_t) data;
+}
+
+void matToFrame(Mat mat, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
+    // Transfer pixel data from the image buffer to the 2D array
+    for (int row = 0; row < IMAGE_ROWS; row++) {
+        for (int col = 0; col < IMAGE_COLS; col++) {
+            int index = (row * IMAGE_COLS) + col;     // Calculate the index in the 1D buffer
+            frame[index] = mat.data[index];          // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
+        }
+    }
+}
+void frameToMat(Mat mat, int16_t frame[IMAGE_ROWS * IMAGE_COLS]){
+    // Transfer pixel data from the 2D array to the image buffer
+    // mat = ;
+    // cout << "Attempting to convert u,v data to CV matrix" << endl;
+    hiClips = loClips = 0;
+    for (int row = 0; row < IMAGE_ROWS; row++) {
+        for (int col = 0; col < IMAGE_COLS; col++) {
+            int index = (row * IMAGE_COLS) + col;        // Calculate the index in the 1D buffer
+            int16_t d = frame[index];
+            uint8_t r,g,b;
+            if(d<0){ // negative
+                b = 0xFF + d*4;
+                g = 0xFF + d*4;
+                r = 0xFF;
+            }
+            if(d>0){ // positive
+                b = 0xFF;
+                g = 0xFF - d*4;
+                r = 0xFF - d*4;
+            }
+            if(d==0){ // no flow --> white
+                r=g=b=0xFF;
+            }
+            mat.data[3*index+0] = b;clip(d); // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
+            mat.data[3*index+1] = g;clip(d); // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
+            mat.data[3*index+2] = r;clip(d); // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
+        }
+    }
+    // printf("Hi Clips: %d\tLo Clips: %d\n", hiClips, loClips);
+}
+
+
+int main(){
+    fprintf(stderr, "check\n");
+    cout << "Entered main()!" << endl;
+    VideoCapture capture(0); 
+    if (!capture.isOpened()){
+        //error in opening the video input
+        cerr << "Unable to open file!" << endl;
+        return 3;
+    } else {
+        cout << "Starting camera feed!" << endl;
+    }
+
+    Mat frame1, prvs;
+    capture >> frame1;
+    cvtColor(frame1, prvs, COLOR_BGR2GRAY);
+
+    // // Used to determine new frame state
+    // printf("(%d,%d)\r\n", prvs.rows, prvs.cols);
+
+    auto p_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
+    auto n_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
+
+    Mat uOut = frame1.clone();
+    Mat vOut = frame1.clone();
+    auto u_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
+    auto v_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
+    // initZero(u_frame);
+    // initZero(v_frame);
+
+    while(true){
+        Mat frame2, next;
+        time_t t = time(0);
+        // cout << "Capturing frame at t=" << t << endl;    // fps test.  For HAL-9000, fps=20
+        capture >> frame2;
+        if (frame2.empty()){
+            cout << "End of content" << endl;
+            break;
+        }
+        cvtColor(frame2, next, COLOR_BGR2GRAY);
+        
+        // convert the matrixes into 2d arrays for basic processing
+        matToFrame(prvs, p_frame); 
+        matToFrame(next, n_frame);
+
+        computeFlow(p_frame, n_frame, u_frame, v_frame);
+
+        // Convert back to OCV Matrix for display
+        frameToMat(uOut, u_frame);
+        frameToMat(vOut, v_frame);
+        imshow("frame U", uOut);
+        imshow("frame V", vOut);
+        imshow("source", frame2);
+
+        int keyboard = waitKey(30);
+        if (keyboard == 'q' || keyboard == 27)
+            break;
+
+        prvs = next;
+    }
+
+}
