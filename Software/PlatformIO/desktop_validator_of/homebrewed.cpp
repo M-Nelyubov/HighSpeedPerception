@@ -79,13 +79,14 @@ int main(){
         cout << "Starting camera feed!" << endl;
     }
 
-    Mat frame1, grey, prvs;
+    Mat frame1, small, prvs, bigOut;
     capture >> frame1;
-    cvtColor(frame1, grey, COLOR_BGR2GRAY);
-    resize(grey, prvs, IMG_SIZE);
+    resize(frame1, small, IMG_SIZE);       // colored small square
+    resize(small, bigOut, DISP_SIZE);      // colored big square
+    cvtColor(small, prvs, COLOR_BGR2GRAY); // greyscale small square
 
-    imshow("Smaller:", prvs);
-    waitKey(0);
+    // imshow("Bigger", bigOut);
+    // waitKey(0);
 
     // // Used to determine new frame state
     // printf("(%d,%d)\r\n", prvs.rows, prvs.cols);
@@ -93,8 +94,8 @@ int main(){
     auto p_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
     auto n_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
 
-    Mat uOut = frame1.clone();
-    Mat vOut = frame1.clone();
+    Mat uOut = small.clone();
+    Mat vOut = small.clone();
     auto u_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
     auto v_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
     // initZero(u_frame);
@@ -113,7 +114,7 @@ int main(){
         resize(grey2, next, IMG_SIZE);
         
         // convert the matrixes into 2d arrays for basic processing
-        matToFrame(prvs, p_frame); 
+        matToFrame(prvs, p_frame);
         matToFrame(next, n_frame);
 
         computeFlow(p_frame, n_frame, u_frame, v_frame);
