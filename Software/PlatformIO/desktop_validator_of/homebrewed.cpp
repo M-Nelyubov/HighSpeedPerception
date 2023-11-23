@@ -79,11 +79,12 @@ int main(){
         cout << "Starting camera feed!" << endl;
     }
 
-    Mat frame1, small, prvs, bigOut;
-    capture >> frame1;
-    resize(frame1, small, IMG_SIZE);       // colored small square
-    resize(small, bigOut, DISP_SIZE);      // colored big square
-    cvtColor(small, prvs, COLOR_BGR2GRAY); // greyscale small square
+    Mat frame1, small, prvs, bigOut, repr;
+    capture >> frame1;                      // color big   original aspect ratio
+    resize(frame1, small, IMG_SIZE);        // color small square
+    resize(small, bigOut, DISP_SIZE);       // color big   square
+    cvtColor(small, prvs, COLOR_BGR2GRAY);  // grey  small square
+    cvtColor(bigOut, repr, COLOR_BGR2GRAY); // grey  big   square
 
     // imshow("Bigger", bigOut);
     // waitKey(0);
@@ -96,13 +97,15 @@ int main(){
 
     Mat uOut = small.clone();
     Mat vOut = small.clone();
+    Mat uBig = bigOut.clone();
+    Mat vBig = bigOut.clone();
     auto u_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
     auto v_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
     // initZero(u_frame);
     // initZero(v_frame);
 
     while(true){
-        Mat frame2, grey2, next;
+        Mat frame2, grey2, next, inRep;
         time_t t = time(0);
         // cout << "Capturing frame at t=" << t << endl;    // fps test.  For HAL-9000, fps=20
         capture >> frame2;
@@ -122,9 +125,14 @@ int main(){
         // Convert back to OCV Matrix for display
         frameToMat(uOut, u_frame);
         frameToMat(vOut, v_frame);
-        imshow("frame U", uOut);
-        imshow("frame V", vOut);
+
+        resize(uOut, uBig, DISP_SIZE);
+        resize(vOut, vBig, DISP_SIZE);
+        resize(next, inRep, DISP_SIZE);
+        imshow("frame U", uBig);
+        imshow("frame V", vBig);
         imshow("source", frame2);
+        imshow("input", inRep);
 
         int keyboard = waitKey(30);
         if (keyboard == 'q' || keyboard == 27)
