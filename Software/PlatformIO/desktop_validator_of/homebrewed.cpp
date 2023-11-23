@@ -3,7 +3,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/video.hpp>
-#include "opticalFlow.hpp"
+#include "optical_flow.hpp"
 #include <ctime>
 
 using namespace cv;

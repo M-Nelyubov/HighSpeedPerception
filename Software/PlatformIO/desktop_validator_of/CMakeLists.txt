@@ -9,7 +9,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 add_executable(optical-flow 
     homebrewed.cpp
-    opticalFlow.cpp
+    optical_flow.cpp
 )
 
 target_link_libraries( optical-flow ${OpenCV_LIBS} )

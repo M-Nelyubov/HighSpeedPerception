@@ -1,4 +1,4 @@
-#include "opticalFlow.hpp"
+#include "optical_flow.hpp"
 #include <iostream>
 
 #define max(a,b) ((a>b)?a:b)
