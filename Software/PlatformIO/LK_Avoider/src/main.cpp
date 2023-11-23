@@ -9,9 +9,18 @@
 #include "driver/rtc_io.h"
 #include "img_converters.h" // see https://github.com/espressif/esp32-camera/blob/master/conversions/include/img_converters.h
 
+#include "optical_flow.hpp"
+
+// Model must be defined before including camera pins
 #define CAMERA_MODEL_XIAO_ESP32S3 // Has PSRAM
 #include "camera_pins.h"
-#include "optical_flow.hpp"
+
+
+// https://files.seeedstudio.com/wiki/SeeedStudio-XIAO-ESP32S3/img/2.jpg
+// Digital pins 6 and 7
+// For testing only
+#define L_MOTOR_PIN 43
+#define R_MOTOR_PIN 44
 
 #define USE_SD_CARD 0    // set to 1 (true) for saving images
 #define perfTimeLog_en 0 // set to 1 (true) to enable more detailed logging of system state/timing
@@ -148,9 +157,12 @@ void setup() {
   while(!Serial && millis() < 5000); // When the serial monitor is turned on, the program starts to execute.  Or after 5 seconds for autonomous mode
   Serial.println("Started up");
 
-  if(initCamera()) return;
-  if(configureSD()) return;
-
+  // motor config
+  pinMode(R_MOTOR_PIN, OUTPUT);
+  pinMode(L_MOTOR_PIN, OUTPUT);
+  
+  if(initCamera()) Serial.println("Failed to initialize camera");
+  if(configureSD()) Serial.println("Failed to initialize SD Card");
 }
 
 void loop(){
@@ -210,23 +222,13 @@ void loop(){
 
   // print how many flow points are above the turning threshold
   Serial.printf("L: %d\tR:%d\t", leftSum, rightSum);
-  bool lMotor,rMotor;
-  lMotor=rMotor=true; // start with both enabled
-  if(leftSum > OPTICAL_FLOW_QUANTITY_THRESHOLD) rMotor = false;
-  if(rightSum > OPTICAL_FLOW_QUANTITY_THRESHOLD) lMotor = false;
+  int lMotor,rMotor;
+  lMotor=rMotor=1; // start with both enabled
+  if(leftSum > OPTICAL_FLOW_QUANTITY_THRESHOLD) rMotor = 0;
+  if(rightSum > OPTICAL_FLOW_QUANTITY_THRESHOLD) lMotor = 0;
   Serial.printf("Motors: L:%d,R:%d\n", lMotor,rMotor);
+  digitalWrite(L_MOTOR_PIN, lMotor);
+  digitalWrite(R_MOTOR_PIN, rMotor);
   // send control signal outputs
-
-  // if(Serial)
-  //   if(centerSum >= leftSum && centerSum >= rightSum){
-  //   Serial.println("both motors on");
-  //   }
-  // if(centerSum <= leftSum && leftSum >= rightSum){
-  //   Serial.println("left motor on");
-  //   }
-  // if(rightSum >= leftSum && leftSum <= rightSum){
-  //   Serial.println("right motor on");
-  //   }
-  // else {Serial.println("both motors on");}
-
+  // delay(200);
 }
