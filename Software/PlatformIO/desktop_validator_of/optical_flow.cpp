@@ -195,8 +195,8 @@ void computeUV(uint8_t *p_frame, uint8_t *n_frame, int16_t *u_frame, int16_t *v_
             int baseIdx = by * cols + bx;
 
             // Compute sums (ATA), (ATb)
-            for(int y=0;y<OF_WINDOW;y++){
-                for(int x=0;x<OF_WINDOW;x++){
+            for(int y=0;y<OF_WINDOW && by+y <rows;y++){
+                for(int x=0;x<OF_WINDOW && bx+x<cols;x++){
                     int idx = (by+y) * cols + (bx+x);
                     sIxx += IxIx[idx];
                     sIxy += IxIy[idx];

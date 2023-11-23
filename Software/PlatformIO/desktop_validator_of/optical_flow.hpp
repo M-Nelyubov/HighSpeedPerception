@@ -10,7 +10,7 @@ using namespace std;
 #define IMAGE_COLS 96
 
 #define OF_WINDOW 4   // optical flow coherence constraint window size (N x N)
-#define OF_FRAME_SKIPS 4 // optical flow is only calculated once per this many frames in each dimension
+#define OF_FRAME_SKIPS 1 // optical flow is only calculated once per this many frames in each dimension
 
 #define PYRAMID_DEPTH 0
 
