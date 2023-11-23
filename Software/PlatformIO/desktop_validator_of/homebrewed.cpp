@@ -126,9 +126,9 @@ int main(){
         frameToMat(uOut, u_frame);
         frameToMat(vOut, v_frame);
 
-        resize(uOut, uBig, DISP_SIZE);
-        resize(vOut, vBig, DISP_SIZE);
-        resize(next, inRep, DISP_SIZE);
+        resize(uOut, uBig, DISP_SIZE,0,0,INTER_NEAREST);
+        resize(vOut, vBig, DISP_SIZE,0,0,INTER_NEAREST);
+        resize(next, inRep, DISP_SIZE,0,0,INTER_NEAREST);
         imshow("frame U", uBig);
         imshow("frame V", vBig);
         imshow("source", frame2);
