@@ -1,13 +1,11 @@
 #ifndef opticalFlow_hpp
 #define opticalFlow_hpp
 
+#include "camera_config.hpp"
+
 #include <iostream>
 #include <stdio.h>
 using namespace std;
-
-// Image Dimensions
-#define IMAGE_ROWS 96
-#define IMAGE_COLS 96
 
 #define OF_WINDOW 4   // optical flow coherence constraint window size (N x N)
 #define OF_FRAME_SKIPS 1 // optical flow is only calculated once per this many frames in each dimension

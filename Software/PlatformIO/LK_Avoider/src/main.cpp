@@ -10,6 +10,7 @@
 #include "img_converters.h" // see https://github.com/espressif/esp32-camera/blob/master/conversions/include/img_converters.h
 
 #include "optical_flow.hpp"
+#include "motor_control.hpp"
 
 // Model must be defined before including camera pins
 #define CAMERA_MODEL_XIAO_ESP32S3 // Has PSRAM
@@ -28,10 +29,6 @@
 #define IMAGE_WIDTH  IMAGE_COLS
 #define IMAGE_HEIGHT IMAGE_ROWS
 #define TIME_FRAMES  2           // how many frames back in time are kept
-
-#define OPTICAL_FLOW_INTENSITY_THRESHOLD 5     // the magnitude of flow after which point, it counts toward taking evasive behavior
-#define OPTICAL_FLOW_QUANTITY_THRESHOLD 15     // the number of flow points above the threshold, requiring at least this many to take evasive action
-
 
 // two instances of Two-dimensional array to hold the pixel values at consecutive time points
 auto p_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // prior
@@ -166,21 +163,14 @@ void setup() {
 }
 
 void loop(){
-  // setting up a pointer to the frame buffer
-  camera_fb_t * fb = NULL;
-  
-  // if(Serial)
-  //     Serial.printf("\n\n\t\tCYCLE START\t %d\n", millis());
-  // Take Picture with camera and put in buffer
-  fb = esp_camera_fb_get();
+  camera_fb_t * fb = esp_camera_fb_get();    // Take Picture with camera and put in buffer
 
   if (!fb) {
     Serial.println("Camera capture failed");
     return;
   }
 
-
-  perfTimeLog("Frame buffer verified");
+  // perfTimeLog("Frame buffer verified");
   // Serial.printf("Camera buffer length: %d\n", fb->len);
 
   // Transfer pixel data from the image buffer to the 2D array
@@ -191,44 +181,22 @@ void loop(){
     }
   }
   times[1] = millis();
-  // Release the image buffer
-  esp_camera_fb_return(fb);
+  esp_camera_fb_return(fb);    // Release the image buffer
 
-  // compute the consequences
-  computeFlow(p_frame, n_frame, u_vals, v_vals);
+  computeFlow(p_frame, n_frame, u_vals, v_vals);  // compute the consequences
   
   // Enable for testing, disable for high speed performance without SD card
-  if(USE_SD_CARD){
-      photo_save();
-  }
+  if(USE_SD_CARD){photo_save();}
 
   // swap frames for next shot so that the one that was just taken is kept
   auto swap = n_frame;
   n_frame = p_frame;
   p_frame = swap;
 
-  // count flow in each half of the screen
-  int leftSum = 0;
-  int rightSum = 0;
-  for(int r=0; r < IMAGE_ROWS; r++){
-    for(int c=0; c < IMAGE_COLS; c++){
-      int idx = r * IMAGE_COLS + c;
-      int mag = u_vals[idx]*u_vals[idx] + v_vals[idx]*v_vals[idx];                      // magnitude squared, for computational simplicity
-      if(mag >= OPTICAL_FLOW_INTENSITY_THRESHOLD * OPTICAL_FLOW_INTENSITY_THRESHOLD){   // compare against the threshold
-          if(c < IMAGE_COLS/2) {leftSum++;} else {rightSum++;}                          // contribute to the side's sum
-      }
-    }
-  }
-
-  // print how many flow points are above the turning threshold
-  Serial.printf("L: %d\tR:%d\t", leftSum, rightSum);
-  int lMotor,rMotor;
-  lMotor=rMotor=1; // start with both enabled
-  if(leftSum > OPTICAL_FLOW_QUANTITY_THRESHOLD) rMotor = 0;
-  if(rightSum > OPTICAL_FLOW_QUANTITY_THRESHOLD) lMotor = 0;
-  Serial.printf("Motors: L:%d,R:%d\n", lMotor,rMotor);
-  digitalWrite(L_MOTOR_PIN, lMotor);
-  digitalWrite(R_MOTOR_PIN, rMotor);
-  // send control signal outputs
-  // delay(200);
+  // update motor control outputs based on module policy
+  int ctrl[2] = {0,0};
+  motorControl(u_vals, v_vals, ctrl);
+  Serial.printf("Motors: L:%d,R:%d\n", ctrl[0],ctrl[1]);
+  digitalWrite(L_MOTOR_PIN, ctrl[0]);
+  digitalWrite(R_MOTOR_PIN, ctrl[1]);
 }
