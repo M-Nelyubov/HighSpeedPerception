@@ -11,7 +11,7 @@
 using namespace cv;
 
 #define IMG_SIZE Size(IMAGE_COLS, IMAGE_ROWS)
-#define DISP_SIZE Size(4*IMAGE_COLS, 4*IMAGE_ROWS)
+#define DISP_SIZE Size(5*IMAGE_COLS, 5*IMAGE_ROWS)
 
 int hiClips = 0;
 int loClips = 0;
@@ -47,18 +47,27 @@ void frameToMat(Mat mat, int16_t frame[IMAGE_ROWS * IMAGE_COLS]){
             int index = (row * IMAGE_COLS) + col;        // Calculate the index in the 1D buffer
             int16_t d = frame[index];
             uint8_t r,g,b;
+            int shamt = 3; // x pixel intensity: 2^shamt
             if(d<0){ // negative
-                b = 0xFF + d*4;
-                g = 0xFF + d*4;
+                b = 0xFF + (d<<shamt);
+                g = 0xFF + (d<<shamt);
                 r = 0xFF;
             }
             if(d>0){ // positive
                 b = 0xFF;
-                g = 0xFF - d*4;
-                r = 0xFF - d*4;
+                g = 0xFF - (d<<shamt);
+                r = 0xFF - (d<<shamt);
             }
             if(d==0){ // no flow --> white
                 r=g=b=0xFF;
+            }
+
+            // Error case: flow is more than some large threshold
+            int largeNum = 20;
+            if(d > largeNum || d < -largeNum){
+                r=b=0;
+                g = 0xFF;
+                printf("Strange reading: ry:%d\tcx:%d\tmag:%d\n", row,col,d);
             }
             mat.data[3*index+0] = b;clip(d); // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
             mat.data[3*index+1] = g;clip(d); // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
