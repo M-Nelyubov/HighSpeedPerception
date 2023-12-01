@@ -90,14 +90,14 @@ int main(){
         cout << "Starting camera feed!" << endl;
     }
 
-    Mat frame1, small, prvs, bigOut, repr;
-    capture >> frame1;                      // color big   original aspect ratio
-    resize(frame1, small, IMG_SIZE);        // color small square
-    resize(small, bigOut, DISP_SIZE);       // color big   square
-    cvtColor(small, prvs, COLOR_BGR2GRAY);  // grey  small square
-    cvtColor(bigOut, repr, COLOR_BGR2GRAY); // grey  big   square
+    Mat srcImg1, smlCol1, prvs, bigCol1, repr;
+    capture >> srcImg1;                      // color big   original aspect ratio
+    resize(srcImg1, smlCol1, IMG_SIZE);      // color small square
+    resize(smlCol1, bigCol1, DISP_SIZE);     // color big   square
+    cvtColor(smlCol1, prvs, COLOR_BGR2GRAY); // grey  small square
+    cvtColor(bigCol1, repr, COLOR_BGR2GRAY); // grey  big   square
 
-    // imshow("Bigger", bigOut);
+    // imshow("Bigger", bigCol1);
     // waitKey(0);
 
     // // Used to determine new frame state
@@ -106,10 +106,15 @@ int main(){
     auto p_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
     auto n_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
 
-    Mat uOut = small.clone();
-    Mat vOut = small.clone();
-    Mat uBig = bigOut.clone();
-    Mat vBig = bigOut.clone();
+    Mat control_sig = smlCol1.clone(); // todo
+
+    Mat cvUOut = bigCol1.clone();
+    Mat cvVOut = bigCol1.clone();
+
+    Mat uOut = smlCol1.clone();
+    Mat vOut = smlCol1.clone();
+    Mat uBig = bigCol1.clone();
+    Mat vBig = bigCol1.clone();
     auto u_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
     auto v_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
     // initZero(u_frame);
@@ -131,7 +136,22 @@ int main(){
         matToFrame(prvs, p_frame);
         matToFrame(next, n_frame);
 
+        Mat flow(prvs.size(), CV_32FC2);
+
         computeFlow(p_frame, n_frame, u_frame, v_frame);
+
+        // TODO: CV Version of compute flow
+        // calcOpticalFlowPyrLK(prvs, next, flow), ;
+        calcOpticalFlowFarneback(prvs, next, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+
+        Mat flow_parts[2];
+        split(flow, flow_parts);
+
+        resize(flow_parts[0], cvUOut, DISP_SIZE,0,0,INTER_NEAREST);
+        resize(flow_parts[1], cvVOut, DISP_SIZE,0,0,INTER_NEAREST);
+
+        imshow("OpenCV U", cvUOut);
+        imshow("OpenCV V", cvVOut);
 
         // Convert back to OCV Matrix for display
         frameToMat(uOut, u_frame);
