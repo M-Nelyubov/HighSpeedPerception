@@ -140,7 +140,8 @@ int main(){
 
         computeFlow(p_frame, n_frame, u_frame, v_frame);
 
-        // TODO: CV Version of compute flow
+        // https://learnopencv.com/optical-flow-in-opencv/
+        // OpenCV Version of compute flow
         // calcOpticalFlowPyrLK(prvs, next, flow), ;
         calcOpticalFlowFarneback(prvs, next, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
 
@@ -166,13 +167,15 @@ int main(){
         resize(bgr, bigger, DISP_SIZE,0,0,INTER_NEAREST);
         imshow("frame2", bigger);
 
+        // end of of-demo version
+
         // resize(flow_parts[0], cvUOut, DISP_SIZE,0,0,INTER_NEAREST);
         // resize(flow_parts[1], cvVOut, DISP_SIZE,0,0,INTER_NEAREST);
 
         // imshow("OpenCV U", cvUOut);
         // imshow("OpenCV V", cvVOut);
 
-        // Convert back to OCV Matrix for display
+        // Convert homebrewed version back to OCV Matrix for display
         frameToMat(uOut, u_frame);
         frameToMat(vOut, v_frame);
 
