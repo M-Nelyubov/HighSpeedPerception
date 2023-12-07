@@ -2,3 +2,4 @@ temp
 .vs
 .venv
 *.pyc
+Software/PlatformIO/*/build
