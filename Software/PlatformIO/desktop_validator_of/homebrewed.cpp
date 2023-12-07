@@ -147,11 +147,30 @@ int main(){
         Mat flow_parts[2];
         split(flow, flow_parts);
 
-        resize(flow_parts[0], cvUOut, DISP_SIZE,0,0,INTER_NEAREST);
-        resize(flow_parts[1], cvVOut, DISP_SIZE,0,0,INTER_NEAREST);
+        // from of-demo
+        Mat magnitude, angle, magn_norm;
+        cartToPolar(flow_parts[0], flow_parts[1], magnitude, angle, true);
+        normalize(magnitude, magn_norm, 0.0f, 1.0f, NORM_MINMAX);
+        angle *= ((1.f / 360.f) * (180.f / 255.f));
 
-        imshow("OpenCV U", cvUOut);
-        imshow("OpenCV V", cvVOut);
+        //build hsv image
+        Mat _hsv[3], hsv, hsv8, bgr;
+        _hsv[0] = angle;
+        _hsv[1] = Mat::ones(angle.size(), CV_32F);
+        _hsv[2] = magn_norm;
+        merge(_hsv, 3, hsv);
+        hsv.convertTo(hsv8, CV_8U, 255.0);
+        cvtColor(hsv8, bgr, COLOR_HSV2BGR);
+
+        Mat bigger;
+        resize(bgr, bigger, DISP_SIZE,0,0,INTER_NEAREST);
+        imshow("frame2", bigger);
+
+        // resize(flow_parts[0], cvUOut, DISP_SIZE,0,0,INTER_NEAREST);
+        // resize(flow_parts[1], cvVOut, DISP_SIZE,0,0,INTER_NEAREST);
+
+        // imshow("OpenCV U", cvUOut);
+        // imshow("OpenCV V", cvVOut);
 
         // Convert back to OCV Matrix for display
         frameToMat(uOut, u_frame);
