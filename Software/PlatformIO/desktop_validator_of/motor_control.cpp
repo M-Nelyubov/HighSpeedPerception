@@ -9,7 +9,7 @@
 #define R_BCK ctrl[2]=1; ctrl[3]=0;
 
 
-bool rule(int u, int v){
+int16_t rule(int u, int v){
   // magnitude squared, for computational simplicity of not taking square roots on a board that says they're 0
   int mag = u*u + v*v;
   return mag >= OFIT *OFIT;

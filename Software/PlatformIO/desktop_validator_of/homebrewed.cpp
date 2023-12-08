@@ -6,6 +6,7 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/video.hpp>
 #include "optical_flow.hpp"
+#include "motor_control.hpp"
 #include <ctime>
 
 using namespace cv;
@@ -77,6 +78,24 @@ void frameToMat(Mat mat, int16_t frame[IMAGE_ROWS * IMAGE_COLS]){
     // printf("Hi Clips: %d\tLo Clips: %d\n", hiClips, loClips);
 }
 
+void zero(int8_t *data, int len){
+    for(int i=0;i<len;i++){
+        data[i]=0;
+    }
+}
+
+void upscaleControl(int control[4], Mat ctrl_img){
+    // ctrl_img is IMAGE_ROWS by IMAGE_COLS
+    for (int row = 0; row < IMAGE_ROWS; row++) {
+        for (int col = 0; col < IMAGE_COLS; col++) {
+            int index = (row * IMAGE_COLS) + col;       // Calculate the index in the 1D buffer
+            int screenHalf = (2* col) / IMAGE_COLS;    // which half of the screen to pull from
+            int src = control[1+2*screenHalf];        // half to source
+            ctrl_img.data[index] = 200 * src;  // brighten {0,1} to {0,200}
+        }
+    }
+}
+
 
 int main(){
     fprintf(stderr, "check\n");
@@ -103,8 +122,8 @@ int main(){
     // // Used to determine new frame state
     // printf("(%d,%d)\r\n", prvs.rows, prvs.cols);
 
-    auto p_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
-    auto n_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
+    auto p_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
+    auto n_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
 
     Mat control_sig = smlCol1.clone(); // todo
 
@@ -115,8 +134,13 @@ int main(){
     Mat vOut = smlCol1.clone();
     Mat uBig = bigCol1.clone();
     Mat vBig = bigCol1.clone();
-    auto u_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
-    auto v_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // 480x640 bytes
+    auto u_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
+    auto v_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
+
+    auto motor_rule = new int16_t [IMAGE_COLS * IMAGE_ROWS];
+    Mat activation_mat = smlCol1.clone();
+    Mat big_activation_mat = bigCol1.clone();
+    Mat ctrl_img = prvs.clone();  // greyscale
     // initZero(u_frame);
     // initZero(v_frame);
 
@@ -167,13 +191,25 @@ int main(){
         resize(bgr, bigger, DISP_SIZE,0,0,INTER_NEAREST);
         imshow("frame2", bigger);
 
-        // end of of-demo version
 
         // resize(flow_parts[0], cvUOut, DISP_SIZE,0,0,INTER_NEAREST);
         // resize(flow_parts[1], cvVOut, DISP_SIZE,0,0,INTER_NEAREST);
 
         // imshow("OpenCV U", cvUOut);
         // imshow("OpenCV V", cvVOut);
+        ///////////////////////////////////////////////////// end of of-demo version
+
+
+        auto control = new int[4];
+        for(int i=0; i<IMAGE_COLS * IMAGE_ROWS;i++){
+            motor_rule[i] = 20*rule(u_frame[i], v_frame[i]);
+        }
+        frameToMat(activation_mat, motor_rule);
+        resize(activation_mat, big_activation_mat, DISP_SIZE,0,0, INTER_NEAREST);
+        
+        motorControl(u_frame, v_frame, control);
+        upscaleControl(control, ctrl_img);
+
 
         // Convert homebrewed version back to OCV Matrix for display
         frameToMat(uOut, u_frame);
@@ -186,6 +222,8 @@ int main(){
         imshow("frame V", vBig);
         imshow("source", frame2);
         imshow("input", inRep);
+        imshow("activation layer", big_activation_mat);
+        imshow("Control signals", ctrl_img);
 
         int keyboard = waitKey(30);
         if (keyboard == 'q' || keyboard == 27)

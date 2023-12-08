@@ -40,6 +40,9 @@ int times[TIME_FRAMES];  // tracks the age of the frames in the frames array.
 int16_t u_vals[IMAGE_HEIGHT * IMAGE_WIDTH];
 int16_t v_vals[IMAGE_HEIGHT * IMAGE_WIDTH];
 
+// Pins connected to each motor
+int pins[] = {D0, D1, D2, D3};
+
 
 void timeLog(String data) {
   if(Serial)
@@ -151,13 +154,15 @@ void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
   Serial.begin(115200);
-  while(!Serial && millis() < 5000); // When the serial monitor is turned on, the program starts to execute.  Or after 5 seconds for autonomous mode
+  while(!Serial && millis() < 1500); // When the serial monitor is turned on, the program starts to execute.  Or after 5 seconds for autonomous mode
   Serial.println("Started up");
 
   // motor config
-  pinMode(R_MOTOR_PIN, OUTPUT);
-  pinMode(L_MOTOR_PIN, OUTPUT);
-  
+  for (int i=0;i<4;i++){
+    pinMode(pins[i], OUTPUT);
+  }
+
+  // peripherals if enabled
   if(initCamera()) Serial.println("Failed to initialize camera");
   if(configureSD()) Serial.println("Failed to initialize SD Card");
 }
@@ -194,9 +199,13 @@ void loop(){
   p_frame = swap;
 
   // update motor control outputs based on module policy
-  int ctrl[2] = {0,0};
+  int ctrl[] = {0,0,0,0};
+  
   motorControl(u_vals, v_vals, ctrl);
-  Serial.printf("Motors: L:%d,R:%d\n", ctrl[0],ctrl[1]);
-  digitalWrite(L_MOTOR_PIN, ctrl[0]);
-  digitalWrite(R_MOTOR_PIN, ctrl[1]);
+  Serial.printf("Motors:"); // L:%d,R:%d\n", ctrl[0],ctrl[1]);
+  for(int i=0;i<4;i++){
+    digitalWrite(pins[i], ctrl[i]);
+    Serial.printf("%d [%d]: %d |",i, pins[i], ctrl[i]);
+  }
+  Serial.printf("\n");
 }
