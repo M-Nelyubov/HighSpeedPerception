@@ -14,6 +14,10 @@ using namespace std;
 
 #define PYRAMID_DEPTH 0
 
+// Corner detection parameters
+#define CD_WINDOW 2     // corner detection window length (square side length)
+
+
 /**
  * p_frame - previous image frame, greyscale byte grid
  * n_frame - next image frame, same
@@ -27,5 +31,9 @@ void computeFlow(
     int16_t v_frame[IMAGE_ROWS * IMAGE_COLS] 
     );
 
+void findCorners(
+    uint8_t p_frame[IMAGE_ROWS * IMAGE_COLS],  // input frame to scan
+    uint8_t corners[IMAGE_ROWS * IMAGE_COLS]   // output data target
+);
 
 #endif

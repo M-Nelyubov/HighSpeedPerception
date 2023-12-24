@@ -38,6 +38,8 @@ void matToFrame(Mat mat, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
         }
     }
 }
+
+
 void frameToMat(Mat mat, int16_t frame[IMAGE_ROWS * IMAGE_COLS]){
     // Transfer pixel data from the 2D array to the image buffer
     // mat = ;
@@ -68,7 +70,7 @@ void frameToMat(Mat mat, int16_t frame[IMAGE_ROWS * IMAGE_COLS]){
             if(d > largeNum || d < -largeNum){
                 r=b=0;
                 g = 0xFF;
-                printf("Strange reading: ry:%d\tcx:%d\tmag:%d\n", row,col,d);
+                // printf("Strange reading: ry:%d\tcx:%d\tmag:%d\n", row,col,d);
             }
             mat.data[3*index+0] = b;clip(d); // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
             mat.data[3*index+1] = g;clip(d); // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
@@ -76,6 +78,13 @@ void frameToMat(Mat mat, int16_t frame[IMAGE_ROWS * IMAGE_COLS]){
         }
     }
     // printf("Hi Clips: %d\tLo Clips: %d\n", hiClips, loClips);
+}
+
+void frameToMat(Mat mat, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
+    auto proxy_frame = new int16_t [IMAGE_COLS * IMAGE_ROWS];
+    for(int i=0; i<IMAGE_ROWS * IMAGE_COLS; i++) proxy_frame[i] = frame[i] * 20; // scale up for visibility on output render
+    frameToMat(mat, proxy_frame);
+    delete proxy_frame; 
 }
 
 void zero(int8_t *data, int len){
@@ -94,6 +103,43 @@ void upscaleControl(int control[4], Mat ctrl_img){
             ctrl_img.data[index] = 200 * src;  // brighten {0,1} to {0,200}
         }
     }
+}
+
+void openCV_OF(Mat prvs, Mat next, Mat flow){
+    // https://learnopencv.com/optical-flow-in-opencv/
+    // OpenCV Version of compute flow
+    // calcOpticalFlowPyrLK(prvs, next, flow), ;
+    calcOpticalFlowFarneback(prvs, next, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+
+    Mat flow_parts[2];
+    split(flow, flow_parts);
+
+    // from of-demo
+    Mat magnitude, angle, magn_norm;
+    cartToPolar(flow_parts[0], flow_parts[1], magnitude, angle, true);
+    normalize(magnitude, magn_norm, 0.0f, 1.0f, NORM_MINMAX);
+    angle *= ((1.f / 360.f) * (180.f / 255.f));
+
+    //build hsv image
+    Mat _hsv[3], hsv, hsv8, bgr;
+    _hsv[0] = angle;
+    _hsv[1] = Mat::ones(angle.size(), CV_32F);
+    _hsv[2] = magn_norm;
+    merge(_hsv, 3, hsv);
+    hsv.convertTo(hsv8, CV_8U, 255.0);
+    cvtColor(hsv8, bgr, COLOR_HSV2BGR);
+
+    Mat bigger;
+    resize(bgr, bigger, DISP_SIZE,0,0,INTER_NEAREST);
+    imshow("frame2", bigger);
+
+
+    // resize(flow_parts[0], cvUOut, DISP_SIZE,0,0,INTER_NEAREST);
+    // resize(flow_parts[1], cvVOut, DISP_SIZE,0,0,INTER_NEAREST);
+
+    // imshow("OpenCV U", cvUOut);
+    // imshow("OpenCV V", cvVOut);
+    ///////////////////////////////////////////////////// end of of-demo version
 }
 
 
@@ -124,14 +170,18 @@ int main(){
 
     auto p_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
     auto n_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
+    auto corners = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
 
     Mat control_sig = smlCol1.clone(); // todo
 
     Mat cvUOut = bigCol1.clone();
     Mat cvVOut = bigCol1.clone();
 
+    Mat cornerOut = smlCol1.clone();
     Mat uOut = smlCol1.clone();
     Mat vOut = smlCol1.clone();
+
+    Mat cornerBig = bigCol1.clone();
     Mat uBig = bigCol1.clone();
     Mat vBig = bigCol1.clone();
     auto u_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
@@ -160,44 +210,17 @@ int main(){
         matToFrame(prvs, p_frame);
         matToFrame(next, n_frame);
 
-        Mat flow(prvs.size(), CV_32FC2);
+
+        findCorners(p_frame, corners);
+        frameToMat(cornerOut,corners);
+        resize(cornerOut, cornerBig, DISP_SIZE,0,0,INTER_NEAREST);
+        imshow("corners", cornerBig);
 
         computeFlow(p_frame, n_frame, u_frame, v_frame);
 
-        // https://learnopencv.com/optical-flow-in-opencv/
-        // OpenCV Version of compute flow
-        // calcOpticalFlowPyrLK(prvs, next, flow), ;
-        calcOpticalFlowFarneback(prvs, next, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
 
-        Mat flow_parts[2];
-        split(flow, flow_parts);
-
-        // from of-demo
-        Mat magnitude, angle, magn_norm;
-        cartToPolar(flow_parts[0], flow_parts[1], magnitude, angle, true);
-        normalize(magnitude, magn_norm, 0.0f, 1.0f, NORM_MINMAX);
-        angle *= ((1.f / 360.f) * (180.f / 255.f));
-
-        //build hsv image
-        Mat _hsv[3], hsv, hsv8, bgr;
-        _hsv[0] = angle;
-        _hsv[1] = Mat::ones(angle.size(), CV_32F);
-        _hsv[2] = magn_norm;
-        merge(_hsv, 3, hsv);
-        hsv.convertTo(hsv8, CV_8U, 255.0);
-        cvtColor(hsv8, bgr, COLOR_HSV2BGR);
-
-        Mat bigger;
-        resize(bgr, bigger, DISP_SIZE,0,0,INTER_NEAREST);
-        imshow("frame2", bigger);
-
-
-        // resize(flow_parts[0], cvUOut, DISP_SIZE,0,0,INTER_NEAREST);
-        // resize(flow_parts[1], cvVOut, DISP_SIZE,0,0,INTER_NEAREST);
-
-        // imshow("OpenCV U", cvUOut);
-        // imshow("OpenCV V", cvVOut);
-        ///////////////////////////////////////////////////// end of of-demo version
+        Mat flow(prvs.size(), CV_32FC2);
+        openCV_OF(prvs, next, flow);
 
 
         auto control = new int[4];

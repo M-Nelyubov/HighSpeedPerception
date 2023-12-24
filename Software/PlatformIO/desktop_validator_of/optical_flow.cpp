@@ -2,6 +2,7 @@
 #include <iostream>
 
 #define max(a,b) ((a>b)?a:b)
+#define min(a,b) ((a<b)?a:b)
 
 void generatePyramidLayer(uint8_t *frame, uint8_t *shrunkFrame, int rows, int cols);
 uint8_t **generatePyramid(uint8_t frame[IMAGE_ROWS * IMAGE_COLS], int pyramidSize);
@@ -383,4 +384,87 @@ void initZero(int16_t *frame, int rows, int cols){
     }
 }
 
+void computeEigenABBC(float a, float b, float c, float eigen[2]){
+    // Computes the eigenvalues for a symmetric matrix of the form:
+    // [a b
+    //  b c]
+    //  as eigen = [(a+c) +/-  sqrt((a+c)^2 - 4 (ac-b^2)) ]/2
+    
+    float A = 1.0;
+    float B = -(a+c); 
+    float C = a * c - b*b;
 
+    float root = sqrt(B*B - 4 * A * C);
+    float base = -B;
+    float denom = 2 * A;
+
+    eigen[0] = (base-root)/denom;
+    eigen[1] = (base+root)/denom;
+
+    // printf("λ_0 = %f, λ_1 = %f\n", eigen[0], eigen[1]);
+}
+
+void computeEigenABBC(int sIxx, int sIxy, int sIyy, float eigen[2]){
+    float a = (float) sIxx;
+    float b = (float) sIxy;
+    float c = (float) sIyy;
+    computeEigenABBC(a,b,c, eigen); // type cast and pass forward
+}
+
+void findCorners(uint8_t p_frame[IMAGE_ROWS * IMAGE_COLS], uint8_t corners[IMAGE_ROWS * IMAGE_COLS]){
+    for(int i=0;i< IMAGE_COLS*IMAGE_ROWS;i++) corners[i]=0; // reset to 0
+
+    int rows = IMAGE_ROWS;
+    int cols = IMAGE_COLS;
+
+    auto grad_x = new int8_t [rows * cols];
+    auto grad_y = new int8_t [rows * cols];
+    
+    computeGrad(p_frame, p_frame, grad_x, rows, cols, 1,0,0);
+    computeGrad(p_frame, p_frame, grad_y, rows, cols, 0,1,0);
+    
+    // printf("Allocating product storage\n");
+    auto IxIx = new int16_t [rows * cols];
+    auto IxIy = new int16_t [rows * cols];
+    auto IyIy = new int16_t [rows * cols];
+    
+    
+    // printf("Calculating products\n");
+    for(int i=0; i<rows * cols; i++){
+        IxIx[i] = grad_x[i]*grad_x[i];
+        IxIy[i] = grad_y[i]*grad_x[i];
+        IyIy[i] = grad_y[i]*grad_y[i];
+    }
+
+    // Calculate M matrix (symmetric, 3 unique elements 2x2)
+    // use it as the evaluation metric
+    for(int r=0;r<rows;r++){
+        for(int c=0;c<cols;c++){
+            int sIxx = 0;
+            int sIxy = 0;
+            int sIyy = 0;
+         
+            // sums over the window of interest for corner detection
+            for(int y=0;y<CD_WINDOW && r+y <rows;y++){
+                for(int x=0;x<CD_WINDOW && c+x<cols;x++){
+                    int idx = (r+y) * cols + (c+x);
+                    sIxx += IxIx[idx];
+                    sIxy += IxIy[idx];
+                    sIyy += IyIy[idx];
+                }
+            }
+
+            // Evaluate the matrix eigenvalues to determine 
+            // if it's a good candidate as a corner to track
+            auto eigen = new float[2];
+
+            computeEigenABBC(sIxx, sIxy, sIyy, eigen);
+
+            int idx = r * cols + c;
+            corners[idx] = min(eigen[0],eigen[1]) > 200;
+
+            delete eigen;
+        }
+    }
+
+}
