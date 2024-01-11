@@ -12,7 +12,7 @@
 int16_t rule(int u, int v){
   // magnitude squared, for computational simplicity of not taking square roots on a board that says they're 0
   int mag = u*u + v*v;
-  return mag >= OFIT *OFIT;
+  return mag >= OFIT * OFIT;
 }
 
 void motorControl(int16_t U[IMAGE_ROWS * IMAGE_COLS], int16_t V[IMAGE_ROWS * IMAGE_COLS], int ctrl[4]){

@@ -31,7 +31,8 @@ void computeFlow(
     uint8_t p_frame[IMAGE_ROWS * IMAGE_COLS], 
     uint8_t n_frame[IMAGE_ROWS * IMAGE_COLS], 
     int16_t u_frame[IMAGE_ROWS * IMAGE_COLS], 
-    int16_t v_frame[IMAGE_ROWS * IMAGE_COLS]
+    int16_t v_frame[IMAGE_ROWS * IMAGE_COLS],
+    uint8_t corners[IMAGE_ROWS * IMAGE_COLS]
 ){
     initZero(u_frame, IMAGE_ROWS, IMAGE_COLS);
     initZero(v_frame, IMAGE_ROWS, IMAGE_COLS);
@@ -56,6 +57,12 @@ void computeFlow(
     // Cleanup
     destroyPyramid(n_pyramid, pyramid_size);
     destroyPyramid(p_pyramid, pyramid_size);
+
+    // mask - disabling UV for all non-corner values
+    for(int i=0; i< IMAGE_COLS*IMAGE_ROWS;i++){
+        u_frame[i] *= corners[i];
+        v_frame[i] *= corners[i];
+    }
 }
 
 void computeUVpyramid(uint8_t **p_pyramid, uint8_t **n_pyramid, int16_t *u_frame, int16_t *v_frame, int rows, int cols, int depth, int layer){

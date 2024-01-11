@@ -52,14 +52,14 @@ void frameToMat(Mat mat, int16_t frame[IMAGE_ROWS * IMAGE_COLS]){
             uint8_t r,g,b;
             int shamt = 3; // x pixel intensity: 2^shamt
             if(d<0){ // negative
-                b = 0xFF + (d<<shamt);
-                g = 0xFF + (d<<shamt);
+                b = 0xD0 + (d<<shamt);
+                g = 0xD0 + (d<<shamt);
                 r = 0xFF;
             }
             if(d>0){ // positive
                 b = 0xFF;
-                g = 0xFF - (d<<shamt);
-                r = 0xFF - (d<<shamt);
+                g = 0xD0 - (d<<shamt);
+                r = 0xD0 - (d<<shamt);
             }
             if(d==0){ // no flow --> white
                 r=g=b=0xFF;
@@ -216,7 +216,7 @@ int main(){
         resize(cornerOut, cornerBig, DISP_SIZE,0,0,INTER_NEAREST);
         imshow("corners", cornerBig);
 
-        computeFlow(p_frame, n_frame, u_frame, v_frame);
+        computeFlow(p_frame, n_frame, u_frame, v_frame, corners);
 
 
         Mat flow(prvs.size(), CV_32FC2);
