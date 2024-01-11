@@ -93,14 +93,14 @@ void zero(int8_t *data, int len){
     }
 }
 
-void upscaleControl(int control[4], Mat ctrl_img){
+void upscaleControl(int control[2], Mat ctrl_img){
     // ctrl_img is IMAGE_ROWS by IMAGE_COLS
     for (int row = 0; row < IMAGE_ROWS; row++) {
         for (int col = 0; col < IMAGE_COLS; col++) {
-            int index = (row * IMAGE_COLS) + col;       // Calculate the index in the 1D buffer
-            int screenHalf = (2* col) / IMAGE_COLS;    // which half of the screen to pull from
-            int src = control[1+2*screenHalf];        // half to source
-            ctrl_img.data[index] = 200 * src;  // brighten {0,1} to {0,200}
+            int index = (row * IMAGE_COLS) + col;     // Calculate the index in the 1D buffer
+            int screenHalf = (2* col) / IMAGE_COLS;   // which half of the screen to pull from
+            int src = control[screenHalf];            // source data
+            ctrl_img.data[index] = src + 100;         // brighten expected {100,-100} to {0,200}
         }
     }
 }
@@ -231,6 +231,7 @@ int main(){
         resize(activation_mat, big_activation_mat, DISP_SIZE,0,0, INTER_NEAREST);
         
         motorControl(u_frame, v_frame, control);
+        printf("L:%d R:%d\n", control[0], control[1]);
         upscaleControl(control, ctrl_img);
 
 

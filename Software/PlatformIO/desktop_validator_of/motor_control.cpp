@@ -32,6 +32,6 @@ void motorControl(int16_t U[IMAGE_ROWS * IMAGE_COLS], int16_t V[IMAGE_ROWS * IMA
   // with no flow, go full forward.  
   // The more flow, the more you slow down.  
   // At over 100 collisions, reverse.
-  if(leftSum > OFQT) {ctrl[1] = 100 - leftSum;}   
-  if(rightSum > OFQT) {ctrl[0] = 100 - rightSum;}
+  ctrl[1] = 100 - leftSum;
+  ctrl[0] = 100 - rightSum;
 }
