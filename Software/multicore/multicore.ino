@@ -35,7 +35,7 @@ void motorSetup(){
 void core0motorControl( void * pvParameters ){
   for(;;){
     Serial.printf("motorTask (t=%d) running on core %d [ticks = %d]\n", millis(), xPortGetCoreID(), ticks);
-    powerCycle();
+    powerCycle(50, 50);
   }
 }
 
@@ -43,10 +43,7 @@ void core0motorControl( void * pvParameters ){
 void loop() {}
 
 
-void powerCycle(){
-  int dL = 100;
-  int dR = 100;
-
+void powerCycle(int dL, int dR){
   auto Lpin = D1;
   auto Rpin = D3;
 
