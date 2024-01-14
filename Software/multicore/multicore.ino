@@ -17,8 +17,7 @@ void setup() {
 }
 
 void loop() {
-  Serial.print("loop() running on core ");
-  Serial.println(xPortGetCoreID());
+  Serial.printf("loop() running on core %d, state: %d\n", xPortGetCoreID(), motors.state);
   delay(1000);
 }
 
