@@ -44,7 +44,7 @@ void core0motorControl( void * pvParameters ){
   int *duties = (int *) pvParameters;
   int dL = duties[0];
   int dR = duties[1];
-  Serial.printf("motorTask (t=%d) running on core %d [ticks = %d] Pow: [%x,%x] (&d:%x) \n", millis(), xPortGetCoreID(), ticks, dL, dR, duties);
+  // Serial.printf("motorTask (t=%d) running on core %d [ticks = %d] Pow: [%d,%d]\n", millis(), xPortGetCoreID(), ticks, dL, dR);
   powerCycle(dL, dR);
   vTaskDelete(NULL);
 }
