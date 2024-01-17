@@ -1,16 +1,57 @@
 #include "motors.hpp"
 
-// void cycler(Motors *param){
-//   param->cycleMotors();
-// }
+TaskHandle_t motorTask;
+int ticks = 0;    // number of times that the motor has been set high
+int duties[] = {0,0}; // duty cycle global variable storage spot for transferability between cores
 
-void Motors::cycleMotors(void * p){ 
-  Motors *motors = (Motors *) p;
-  int dL = motors->dutyL;
-  int dR = motors->dutyR;
+/**
+  Wrapper for powerCycle to extract parameters from void *
+*/
+void core0motorControl( void * pvParameters );
 
-  auto Lpin = motors->Lpin;
-  auto Rpin = motors->Rpin;
+/**
+  Core Implementation of translating duty cycle inputs to power outputs to control pins
+*/
+void powerCycle(int dL, int dR);
+
+void motorSetup(){
+  int motor_pins[4] = {D0, D1, D2, D3};
+  for(int i=0;i<4;i++){
+    pinMode(motor_pins[i], OUTPUT);    // set all 4 pins to output
+    digitalWrite(motor_pins[i], LOW);  // initialize all 4 pins to off
+  }
+
+  setPower(0,0);  // initial starting values of not powered
+}
+
+void setPower(int dutyL, int dutyR){
+  duties[0] = dutyL;
+  duties[1] = dutyR;
+  
+  // https://randomnerdtutorials.com/esp32-dual-core-arduino-ide/
+  xTaskCreatePinnedToCore(
+    core0motorControl,   /* Task function. */
+    "motorTask",     /* name of task. */
+    10000,       /* Stack size of task */
+    &duties,        /* parameter of the task */
+    1,           /* priority of the task */
+    &motorTask,      /* Task handle to keep track of created task */
+    0);          /* pin task to core 0 */
+
+}
+
+void core0motorControl( void * pvParameters ){
+  int *duties = (int *) pvParameters;
+  int dL = duties[0];
+  int dR = duties[1];
+  Serial.printf("motorTask (t=%d) running on core %d [ticks = %d] Pow: [%x,%x] (&d:%x) \n", millis(), xPortGetCoreID(), ticks, dL, dR, duties);
+  powerCycle(dL, dR);
+  vTaskDelete(NULL);
+}
+
+void powerCycle(int dL, int dR){
+  auto Lpin = D1;
+  auto Rpin = D3;
 
   // parameters aren't used for anything, but are necessary for successful compilation
   // Serial.printf("cycleMotors running on core %d. t: %d\n", xPortGetCoreID(), millis());
@@ -27,29 +68,6 @@ void Motors::cycleMotors(void * p){
     digitalWrite(Lpin, !!(stopL > t));  // power the motor if the stop time for that motor hasn't passed yet
     digitalWrite(Rpin, !!(stopR > t));  // power the motor if the stop time for that motor hasn't passed yet
     delay(1);             // 1ms pause as this is the lowest coherent unit of time measurement for the board
-    motors->state++;
+    ticks += !!(stopL > t) + !!(stopR > t);
   }
-}
-
-
-void Motors::setup() {
-  for(int i=0;i<4;i++){
-    pinMode(motor_pins[i], OUTPUT);    // set all 4 pins to output
-    digitalWrite(motor_pins[i], LOW);  // initialize all 4 pins to off
-  }
-}
-
-void Motors::start() {
-  // spins up a thread on the the secondary core to run the motors at a given frequency
-
-  // https://randomnerdtutorials.com/esp32-dual-core-arduino-ide/
-  xTaskCreatePinnedToCore(
-    this->cycleMotors, /* Function to implement the task */
-    "motor_task",     /* Name of the task */
-    10000,           /* Stack size in words - kept default */
-    this,           /* Task input parameter */
-    20,            /* Priority of the task */
-    &motor_task,  /* Task handle. */
-    0             /* Core where the task should run */
-  );
 }

@@ -4,23 +4,13 @@
 #define CYCLE_DUR_MS 80
 #define STATIC_BREAKING_LOWER_BOUND 15
 
-class Motors {
-  private:
-    TaskHandle_t motor_task;
 
-    // Motor output pins. [L,L, R,R]  {lo, hi} gives forward rotation, {hi, lo} gives backward rotation
-    int motor_pins[4] = {D0, D1, D2, D3};
-    int Lpin = motor_pins[1];
-    int Rpin = motor_pins[3];
+/**
+  Run on startup to configure motor pins
+*/
+void motorSetup();
 
-  public:
-    int dutyL = 100;
-    int dutyR = 100;
-
-    int state = 0;
-
-    void setup();
-    void start();
-    static void cycleMotors(void * p);
-
-};
+/**
+  Sets the duty cycle for the left and right motors for the next CYCLE_DUR_MS milliseconds
+*/
+void setPower(int dutyL, int dutyR);
