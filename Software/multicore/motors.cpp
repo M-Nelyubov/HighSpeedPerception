@@ -15,7 +15,7 @@ void core0motorControl( void * pvParameters );
 void powerCycle(int dL, int dR);
 
 void motorSetup(){
-  int motor_pins[4] = {D0, D1, D2, D3};
+  int motor_pins[4] = {L_RVS, L_FWD, R_RVS, R_FWD};
   for(int i=0;i<4;i++){
     pinMode(motor_pins[i], OUTPUT);    // set all 4 pins to output
     digitalWrite(motor_pins[i], LOW);  // initialize all 4 pins to off
@@ -25,33 +25,35 @@ void motorSetup(){
 }
 
 void setPower(int dutyL, int dutyR){
+  // executes on primary core
   duties[0] = dutyL;
   duties[1] = dutyR;
   
   // https://randomnerdtutorials.com/esp32-dual-core-arduino-ide/
   xTaskCreatePinnedToCore(
-    core0motorControl,   /* Task function. */
-    "motorTask",     /* name of task. */
-    10000,       /* Stack size of task */
-    &duties,        /* parameter of the task */
-    1,           /* priority of the task */
-    &motorTask,      /* Task handle to keep track of created task */
-    0);          /* pin task to core 0 */
+    core0motorControl,    /* Task function. */
+    "motorTask",          /* name of task. */
+    10000,                /* Stack size of task */
+    &duties,              /* parameter of the task */
+    1,                    /* priority of the task */
+    &motorTask,           /* Task handle to keep track of created task */
+    SECONDARY_TASK_CORE); /* pin task to core 0 */
 
 }
 
 void core0motorControl( void * pvParameters ){
+  // executes motor control task on secondary core to avoid scheduling problems with the main tasks on primary core
   int *duties = (int *) pvParameters;
   int dL = duties[0];
   int dR = duties[1];
-  // Serial.printf("motorTask (t=%d) running on core %d [ticks = %d] Pow: [%d,%d]\n", millis(), xPortGetCoreID(), ticks, dL, dR);
+  Serial.printf("motorTask (t=%d) running on core %d [ticks = %d] Pow: [%d,%d]\n", millis(), xPortGetCoreID(), ticks, dL, dR);
   powerCycle(dL, dR);
   vTaskDelete(NULL);
 }
 
 void powerCycle(int dL, int dR){
-  auto Lpin = D1;
-  auto Rpin = D3;
+  auto Lpin = L_FWD;
+  auto Rpin = R_FWD;
 
   // parameters aren't used for anything, but are necessary for successful compilation
   // Serial.printf("cycleMotors running on core %d. t: %d\n", xPortGetCoreID(), millis());

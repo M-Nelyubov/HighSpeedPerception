@@ -4,6 +4,14 @@
 #define CYCLE_DUR_MS 80
 #define STATIC_BREAKING_LOWER_BOUND 15
 
+// Pinouts for forward and reverse signals on motors
+#define L_RVS D0
+#define L_FWD D1
+#define R_RVS D2
+#define R_FWD D3
+
+#define PRIMARY_CORE 1
+#define SECONDARY_TASK_CORE 0
 
 /**
   Run on startup to configure motor pins
