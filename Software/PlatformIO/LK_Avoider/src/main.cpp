@@ -11,17 +11,11 @@
 
 #include "optical_flow.hpp"
 #include "motor_control.hpp"
+#include "motors.hpp"
 
 // Model must be defined before including camera pins
 #define CAMERA_MODEL_XIAO_ESP32S3 // Has PSRAM
 #include "camera_pins.h"
-
-
-// https://files.seeedstudio.com/wiki/SeeedStudio-XIAO-ESP32S3/img/2.jpg
-// Digital pins 6 and 7
-// For testing only
-#define L_MOTOR_PIN 43
-#define R_MOTOR_PIN 44
 
 #define USE_SD_CARD 0    // set to 1 (true) for saving images
 #define perfTimeLog_en 0 // set to 1 (true) to enable more detailed logging of system state/timing
@@ -33,6 +27,7 @@
 // two instances of Two-dimensional array to hold the pixel values at consecutive time points
 auto p_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // prior
 auto n_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // next
+auto corners = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // corners between the two frames
 
 int times[TIME_FRAMES];  // tracks the age of the frames in the frames array. 
 
@@ -158,9 +153,7 @@ void setup() {
   Serial.println("Started up");
 
   // motor config
-  for (int i=0;i<4;i++){
-    pinMode(pins[i], OUTPUT);
-  }
+  motorSetup();
 
   // peripherals if enabled
   if(initCamera()) Serial.println("Failed to initialize camera");
@@ -188,7 +181,7 @@ void loop(){
   times[1] = millis();
   esp_camera_fb_return(fb);    // Release the image buffer
 
-  computeFlow(p_frame, n_frame, u_vals, v_vals);  // compute the consequences
+  computeFlow(p_frame, n_frame, u_vals, v_vals, corners);  // compute the consequences
   
   // Enable for testing, disable for high speed performance without SD card
   if(USE_SD_CARD){photo_save();}
@@ -199,13 +192,10 @@ void loop(){
   p_frame = swap;
 
   // update motor control outputs based on module policy
-  int ctrl[] = {0,0,0,0};
-  
+  int ctrl[] = {0,0};
   motorControl(u_vals, v_vals, ctrl);
-  Serial.printf("Motors:"); // L:%d,R:%d\n", ctrl[0],ctrl[1]);
-  for(int i=0;i<4;i++){
-    digitalWrite(pins[i], ctrl[i]);
-    Serial.printf("%d [%d]: %d |",i, pins[i], ctrl[i]);
-  }
-  Serial.printf("\n");
+
+  // Execute the calculated signals
+  setPower(ctrl[0], ctrl[1]);
+  Serial.printf("Motors: L:%d,R:%d\n", ctrl[0],ctrl[1]);  
 }
