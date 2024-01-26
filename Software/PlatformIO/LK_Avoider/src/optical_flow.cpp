@@ -468,7 +468,7 @@ void findCorners(uint8_t p_frame[IMAGE_ROWS * IMAGE_COLS], uint8_t corners[IMAGE
             computeEigenABBC(sIxx, sIxy, sIyy, eigen);
 
             int idx = r * cols + c;
-            corners[idx] = min(eigen[0],eigen[1]) > 200;
+            corners[idx] = (min(eigen[0],eigen[1]) > 200) ? 1:0;
 
             delete eigen;
         }
