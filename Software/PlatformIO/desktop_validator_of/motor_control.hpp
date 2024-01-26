@@ -7,8 +7,8 @@
 #include <stdio.h>
 using namespace std;
 
-#define OFIT 5     // optical flow intensity threshold - the magnitude of flow after which point, it counts toward taking evasive behavior
-#define OFQT 15    // optical flow quantity threshold - the number of flow points above the threshold, requiring at least this many to take evasive action
+#define OFIT 10    // optical flow intensity threshold - the magnitude of flow after which point, it counts toward taking evasive behavior
+#define OFQT 50    // optical flow quantity threshold - the number of flow points above the threshold, requiring at least this many to take evasive action
 
 
 /**

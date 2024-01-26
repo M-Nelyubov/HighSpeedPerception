@@ -223,7 +223,7 @@ int main(){
         openCV_OF(prvs, next, flow);
 
 
-        auto control = new int[4];
+        auto control = new int[2];
         for(int i=0; i<IMAGE_COLS * IMAGE_ROWS;i++){
             motor_rule[i] = 20*rule(u_frame[i], v_frame[i]);
         }
