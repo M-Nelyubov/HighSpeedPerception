@@ -17,8 +17,11 @@
 #define CAMERA_MODEL_XIAO_ESP32S3 // Has PSRAM
 #include "camera_pins.h"
 
-#define USE_SD_CARD 0    // set to 1 (true) for saving images
+#define USE_SD_CARD 1    // set to 1 (true) for saving images
 #define perfTimeLog_en 0 // set to 1 (true) to enable more detailed logging of system state/timing
+#define STOP_ON_SD_INIT_FAIL 0  // 1 -> if the SD card fails to initialize, stop the program
+
+bool sd_loaded = false;
 
 #define IMAGE_WIDTH  IMAGE_COLS
 #define IMAGE_HEIGHT IMAGE_ROWS
@@ -28,6 +31,9 @@
 auto p_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // prior
 auto n_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // next
 auto corners = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // corners between the two frames
+
+auto save_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // a copy of the frame data for being written to an SD card without slowing down the pipeline
+int saving = 0; // "Mutex" for sd card buffer save operations tracking
 
 int times[TIME_FRAMES];  // tracks the age of the frames in the frames array. 
 
@@ -41,7 +47,7 @@ int pins[] = {D0, D1, D2, D3};
 
 void timeLog(String data) {
   if(Serial)
-    Serial.printf("%d - %s.\n", millis(), data);
+    Serial.printf("[%00d] - %s.\n", millis(), data);
 }
 
 // Wrapper to disable all performance time logs from one point
@@ -52,13 +58,14 @@ void perfTimeLog(String data){
 }
 
 int configureSD(){
+    if(!USE_SD_CARD) return 0;
+
     // 0 -> good
     // non-zero -> error
     // Initialize SD card
     if(!SD.begin(21)){
-      if(Serial)
-        Serial.println("Card Mount Failed");
-        return 1;
+      if(Serial) Serial.println("Card Mount Failed");
+      return 1;
     }
     uint8_t cardType = SD.cardType();
 
@@ -69,6 +76,7 @@ int configureSD(){
         return 2;
     }
 
+    sd_loaded = true;
     if(Serial){
       Serial.print("SD Card Type: ");
       if(cardType == CARD_MMC){
@@ -125,25 +133,46 @@ int initCamera() {
   return 0;
 }
 
+
 // based on take_photos writeFile
-void photo_save() {
-    char filename[32];
-    char fileU[32];
-    char fileV[32];
-    int time = times[1];
-    sprintf(filename, "/image%d.bytes", time);
-    sprintf(fileU, "/image%d.U", time);
-    sprintf(fileV, "/image%d.V", time);
-    perfTimeLog("File write starting");
-    if(Serial)
-        Serial.printf("Beginning of writing image %s\n", filename);
+void photo_save( void * params) {
+  saving = 1;
+  char filename[32];
+  char fileU[32];
+  char fileV[32];
+  int time = times[1];
+  sprintf(filename, "/raw/img/img%6d.bytes", time);
+  sprintf(fileU,    "/raw/u/img%6d.U", time);
+  sprintf(fileV,    "/raw/v/img%6d.V", time);
+  perfTimeLog("File write starting");
+  if(Serial)
+      Serial.printf("Beginning of writing image %s\n", filename);
 
-    File file = SD.open(filename, FILE_WRITE);    
-    file.write(n_frame, IMAGE_WIDTH*IMAGE_HEIGHT);
-    file.close();
-
-    perfTimeLog("Image written");
+  File file = SD.open(filename, FILE_WRITE);    
+  Serial.printf("File Object created.  Writing...\n");
+  file.write(save_frame, IMAGE_WIDTH*IMAGE_HEIGHT);
+  Serial.printf("File write complete\n");
+  file.close();
+  Serial.printf("File closed\n");
+  // perfTimeLog("Image written");
+  saving = 0;
+  vTaskDelete(NULL);
 }
+
+TaskHandle_t sdImageTask;
+void saveImage(){
+  // Wrapper to send process to alternate core
+  // https://randomnerdtutorials.com/esp32-dual-core-arduino-ide/
+  xTaskCreatePinnedToCore(
+    photo_save,    /* Task function. */
+    "sdImageTask",  /* name of task. */
+    10000,           /* Stack size of task */
+    NULL,              /* parameter of the task */
+    1,                  /* priority of the task */
+    &sdImageTask,        /* Task handle to keep track of created task */
+    SECONDARY_TASK_CORE); /* pin task to core 0 */
+}
+
 
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
@@ -156,8 +185,8 @@ void setup() {
   motorSetup();
 
   // peripherals if enabled
-  if(initCamera()) Serial.println("Failed to initialize camera");
-  if(configureSD()) Serial.println("Failed to initialize SD Card");
+  if(initCamera())  while(true) {Serial.println("Failed to initialize camera"); delay(500);}
+  if(configureSD()) while(STOP_ON_SD_INIT_FAIL) {Serial.println("Failed to initialize SD Card");delay(500);} 
 }
 
 void loop(){
@@ -178,13 +207,24 @@ void loop(){
       n_frame[index] = fb->buf[index];    // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
     }
   }
+
+  // Enable for testing, disable for high speed performance without SD card
+  // if(USE_SD_CARD){photo_save();}
+  if(USE_SD_CARD && sd_loaded && !saving){
+    for (int row = 0; row < IMAGE_HEIGHT; row++) {
+      for (int col = 0; col < IMAGE_WIDTH; col++) {
+        int index = (row * IMAGE_WIDTH) + col; // Calculate the index in the 1D buffer
+        save_frame[index] = fb->buf[index];
+      }
+    }
+    saveImage();    
+  }
+
   times[1] = millis();
   esp_camera_fb_return(fb);    // Release the image buffer
 
   computeFlow(p_frame, n_frame, u_vals, v_vals, corners);  // compute the consequences
   
-  // Enable for testing, disable for high speed performance without SD card
-  if(USE_SD_CARD){photo_save();}
 
   // swap frames for next shot so that the one that was just taken is kept
   auto swap = n_frame;
@@ -197,5 +237,5 @@ void loop(){
 
   // Execute the calculated signals
   setPower(ctrl[0], ctrl[1]);
-  Serial.printf("Motors: L:%d,R:%d\n", ctrl[0],ctrl[1]);  
+  printf("Motors: L:%d,R:%d\n", ctrl[0],ctrl[1]);  
 }
