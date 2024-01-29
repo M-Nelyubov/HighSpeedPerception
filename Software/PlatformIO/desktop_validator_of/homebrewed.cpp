@@ -95,13 +95,21 @@ void zero(int8_t *data, int len){
 
 void upscaleControl(int control[2], Mat ctrl_img){
     // ctrl_img is IMAGE_ROWS by IMAGE_COLS
+
     for (int row = 0; row < IMAGE_ROWS; row++) {
         for (int col = 0; col < IMAGE_COLS; col++) {
             int index = (row * IMAGE_COLS) + col;     // Calculate the index in the 1D buffer
             int screenHalf = (2* col) / IMAGE_COLS;   // which half of the screen to pull from
             int src = control[screenHalf];            // source data
-            ctrl_img.data[index] = src + 100;         // brighten expected {100,-100} to {0,200}
+            int pow_ref = (IMAGE_ROWS/2 - row) * 100 / IMAGE_ROWS;   // power reference on the scale of {-100, 100}
+            ctrl_img.data[index] = (src > pow_ref) ? 255 : 0;   // indicate motor power
         }
+    }
+    // draw median line
+    int row = IMAGE_ROWS/2;
+    for (int col = 0; col < IMAGE_COLS; col++) {
+        int index = (row * IMAGE_COLS) + col;     // Calculate the index in the 1D buffer
+        ctrl_img.data[index] = 0x80; //half-power zero line
     }
 }
 
@@ -194,6 +202,9 @@ int main(){
     // initZero(u_frame);
     // initZero(v_frame);
 
+    auto control = new int[2];
+    control[0] = control[1] = 80; // magic number, max pow, duty cycle time
+    
     while(true){
         Mat frame2, grey2, next, inRep;
         time_t t = time(0);
@@ -223,7 +234,6 @@ int main(){
         openCV_OF(prvs, next, flow);
 
 
-        auto control = new int[2];
         for(int i=0; i<IMAGE_COLS * IMAGE_ROWS;i++){
             motor_rule[i] = 20*rule(u_frame[i], v_frame[i]);
         }
