@@ -1,10 +1,9 @@
 #ifndef opticalFlow_hpp
 #define opticalFlow_hpp
 
-#include <Arduino.h>
-
 #include <iostream>
 #include <stdio.h>
+#include <math.h>
 using namespace std;
 
 // Image Dimensions
