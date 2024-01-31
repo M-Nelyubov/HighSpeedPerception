@@ -6,8 +6,11 @@ ROWS = 96
 COLS = 96
 
 base = "D:/raw/img"
+dst  = "D:/img"
 files = os.listdir(base)
 scale = 5    # How much to upscale images by to display
+
+i=0
 
 for file in files:
     fullPath = f"{base}/{file}"
@@ -20,6 +23,10 @@ for file in files:
 
         # img = cv2.imdecode(grid, cv2.IMREAD_UNCHANGED) # https://www.geeksforgeeks.org/python-opencv-imdecode-function/
         cv2.imshow("frame", grid)
+        outPath = f"{dst}/img_{i}.png"
+        i+=1
+        print("Writing file to path:", outPath)
+        cv2.imwrite(outPath, grid)
 
         # wait and escape sequence from homebrewed
         key = cv2.waitKey(200)
