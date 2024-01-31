@@ -7,15 +7,17 @@ COLS = 96
 
 base = "D:/raw/img"
 files = os.listdir(base)
+scale = 5    # How much to upscale images by to display
 
 for file in files:
     fullPath = f"{base}/{file}"
     with open(fullPath, "rb") as imageBytes:
+        print(f"Reading file: {file}")
         bytes = bytearray(imageBytes.read())
         arr = np.array(bytes, dtype="uint8")
         grid = arr.reshape((ROWS,COLS))
-        grid = cv2.resize(grid, (4*ROWS, 4*COLS))
-        print(f"Read length: {file}")
+        grid = cv2.resize(grid, (scale*ROWS, scale*COLS))
+
         # img = cv2.imdecode(grid, cv2.IMREAD_UNCHANGED) # https://www.geeksforgeeks.org/python-opencv-imdecode-function/
         cv2.imshow("frame", grid)
 
