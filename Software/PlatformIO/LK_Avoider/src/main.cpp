@@ -43,6 +43,7 @@ int16_t v_vals[IMAGE_HEIGHT * IMAGE_WIDTH];
 
 // Pins connected to each motor
 int pins[] = {D0, D1, D2, D3};
+int ctrl[] = {0,0};
 
 
 void timeLog(String data) {
@@ -232,7 +233,6 @@ void loop(){
   p_frame = swap;
 
   // update motor control outputs based on module policy
-  int ctrl[] = {0,0};
   motorControl(u_vals, v_vals, ctrl);
 
   // Execute the calculated signals
