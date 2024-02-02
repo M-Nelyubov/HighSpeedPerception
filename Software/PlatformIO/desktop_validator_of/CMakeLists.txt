@@ -8,7 +8,8 @@ find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 add_executable(optical-flow 
-    homebrewed.cpp
+    # homebrewed.cpp
+    bareBones.cpp
     optical_flow.cpp
     motor_control.cpp
 )
