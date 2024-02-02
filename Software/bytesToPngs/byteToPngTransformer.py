@@ -18,15 +18,15 @@ for file in files:
         print(f"Reading file: {file}")
         bytes = bytearray(imageBytes.read())
         arr = np.array(bytes, dtype="uint8")
-        grid = arr.reshape((ROWS,COLS))
-        grid = cv2.resize(grid, (scale*ROWS, scale*COLS))
+        smallGrid = arr.reshape((ROWS,COLS))
+        grid = cv2.resize(smallGrid, (scale*ROWS, scale*COLS))
 
         # img = cv2.imdecode(grid, cv2.IMREAD_UNCHANGED) # https://www.geeksforgeeks.org/python-opencv-imdecode-function/
         cv2.imshow("frame", grid)
         outPath = f"{dst}/img_{i}.png"
         i+=1
         print("Writing file to path:", outPath)
-        cv2.imwrite(outPath, grid)
+        cv2.imwrite(outPath, smallGrid)
 
         # wait and escape sequence from homebrewed
         key = cv2.waitKey(200)
