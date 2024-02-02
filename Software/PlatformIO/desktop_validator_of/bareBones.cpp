@@ -150,12 +150,18 @@ void openCV_OF(Mat prvs, Mat next, Mat flow){
     ///////////////////////////////////////////////////// end of of-demo version
 }
 
-void loadFsToBuffer(int i){ // }, uint8_t buffer[IMAGE_ROWS * IMAGE_COLS]){
-    printf("\nLooking for file %d\n", i);
+void loadFsToBuffer(int i, Mat m, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
+    printf("Looking for file %d\n", i);
     char path[64];
     sprintf(path, "D:/img/img_%d.png", i);
     Mat srcImg0 = imread(path, IMREAD_GRAYSCALE);
-    imshow("file", srcImg0);
+    // imshow("file", srcImg0);
+    for(int i=0; i< srcImg0.rows * srcImg0.cols; i++){
+        m.data[3*i+0] = srcImg0.data[i];
+        m.data[3*i+1] = srcImg0.data[i];
+        m.data[3*i+2] = srcImg0.data[i];
+        frame[i] = srcImg0.data[i];
+    }
     // matToFrame(srcImg0, buffer);
 }
 
@@ -175,17 +181,56 @@ int main(){
         cout << "Starting camera feed!" << endl;
     }
 
-    Mat srcImg1;
+    Mat srcImg1, smlCol1, prvs, bigCol1, repr;
+    capture >> srcImg1;                      // color big   original aspect ratio
+    resize(srcImg1, smlCol1, IMG_SIZE);      // color small square
+    resize(smlCol1, bigCol1, DISP_SIZE);     // color big   square
+    cvtColor(smlCol1, prvs, COLOR_BGR2GRAY); // grey  small square
+    cvtColor(bigCol1, repr, COLOR_BGR2GRAY); // grey  big   square
+
+    Mat uOut = smlCol1.clone();
+    Mat uBig = bigCol1.clone();
+
+
+    Mat square_template; 
+    resize(srcImg1, square_template, IMG_SIZE);      // color small square
+    Mat f1, f2;
+    resize(srcImg1, f1, IMG_SIZE);      // color small square
+    resize(srcImg1, f2, IMG_SIZE);      // color small square
+
+    auto p_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
+    auto n_frame = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
+    auto corners = new uint8_t [IMAGE_ROWS * IMAGE_COLS];   // NxM bytes
+
+    auto u_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // NxMx2 bytes
+    auto v_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // NxMx2 bytes
 
     int i=0;
     while(true){
-        i = (i+1)%30;
-        loadFsToBuffer(i);
+        // Load Cycle
         capture >> srcImg1;                      // color big   original aspect ratio
+        loadFsToBuffer(i,f1, p_frame);
+        i = (i+1)%30;
+        loadFsToBuffer(i,f2, n_frame);
 
+
+        // Computation
+        findCorners(p_frame, corners);
+        computeFlow(p_frame, n_frame, u_frame, v_frame, corners);
+
+
+        // Prepare Presentation
+        frameToMat(uOut, u_frame);
+        resize(uOut, uBig, DISP_SIZE,0,0,INTER_NEAREST);
+
+
+        // Presentation
         imshow("input", srcImg1);
+        imshow("data", f2);
+        imshow("frame U", uBig);
 
-        int keyboard = waitKey(30);
+        // Wait between cycles
+        int keyboard = waitKey(100);
         if (keyboard == 'q' || keyboard == 27)
             break;
     }
