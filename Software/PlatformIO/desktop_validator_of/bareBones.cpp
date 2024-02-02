@@ -151,7 +151,7 @@ void openCV_OF(Mat prvs, Mat next, Mat flow){
 }
 
 void loadFsToBuffer(int i, Mat m, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
-    printf("Looking for file %d\n", i);
+    // printf("Looking for file %d\n", i);
     char path[64];
     sprintf(path, "D:/img/img_%d.png", i);
     Mat srcImg0 = imread(path, IMREAD_GRAYSCALE);
@@ -190,6 +190,7 @@ int main(){
 
     Mat uOut = smlCol1.clone();
     Mat uBig = bigCol1.clone();
+    Mat ctrl_img = prvs.clone();  // greyscale
 
 
     Mat square_template; 
@@ -205,29 +206,38 @@ int main(){
     auto u_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // NxMx2 bytes
     auto v_frame = new int16_t [IMAGE_ROWS * IMAGE_COLS];   // NxMx2 bytes
 
+    auto control = new int[2];
+    control[0] = control[1] = 80; // magic number, max pow, duty cycle time
+
     int i=0;
     while(true){
         // Load Cycle
         capture >> srcImg1;                      // color big   original aspect ratio
         loadFsToBuffer(i,f1, p_frame);
-        i = (i+1)%30;
+        i = (i+1);//%30;
+        if(i >38) return 0;
         loadFsToBuffer(i,f2, n_frame);
 
 
         // Computation
         findCorners(p_frame, corners);
         computeFlow(p_frame, n_frame, u_frame, v_frame, corners);
+        motorControl(u_frame, v_frame, control);
 
 
         // Prepare Presentation
         frameToMat(uOut, u_frame);
         resize(uOut, uBig, DISP_SIZE,0,0,INTER_NEAREST);
 
+        printf("L:%d R:%d\n", control[0], control[1]);
+        upscaleControl(control, ctrl_img);
+
 
         // Presentation
         imshow("input", srcImg1);
         imshow("data", f2);
         imshow("frame U", uBig);
+        imshow("Control signals", ctrl_img);
 
         // Wait between cycles
         int keyboard = waitKey(100);
