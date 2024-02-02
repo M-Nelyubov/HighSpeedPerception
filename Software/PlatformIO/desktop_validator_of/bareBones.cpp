@@ -215,7 +215,7 @@ int main(){
         capture >> srcImg1;                      // color big   original aspect ratio
         loadFsToBuffer(i,f1, p_frame);
         i = (i+1);//%30;
-        if(i >38) return 0;
+        if(i >300) return 0;
         loadFsToBuffer(i,f2, n_frame);
 
 

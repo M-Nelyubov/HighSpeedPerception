@@ -19,7 +19,7 @@
 
 #define USE_SD_CARD 1    // set to 1 (true) for saving images
 #define perfTimeLog_en 0 // set to 1 (true) to enable more detailed logging of system state/timing
-#define STOP_ON_SD_INIT_FAIL 0  // 1 -> if the SD card fails to initialize, stop the program
+#define STOP_ON_SD_INIT_FAIL 1  // 1 -> if the SD card fails to initialize, stop the program
 
 bool sd_loaded = false;
 
@@ -187,7 +187,7 @@ void setup() {
 
   // peripherals if enabled
   if(initCamera())  while(true) {Serial.println("Failed to initialize camera"); delay(500);}
-  if(configureSD()) while(STOP_ON_SD_INIT_FAIL) {Serial.println("Failed to initialize SD Card");delay(500);} 
+  if(configureSD()) while(STOP_ON_SD_INIT_FAIL && configureSD()) {Serial.println("Failed to initialize SD Card");delay(500);} 
 }
 
 void loop(){

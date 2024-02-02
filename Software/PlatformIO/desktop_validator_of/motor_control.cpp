@@ -90,7 +90,7 @@ void motorControl(int16_t U[IMAGE_ROWS * IMAGE_COLS], int16_t V[IMAGE_ROWS * IMA
 
 
   // print how many flow points are above the turning threshold
-  printf("raw OF points L: %d\tR:%d\tnz:%d\tSUM L:%.6d\tR:%.6d\tdiff:%.6d\tdθ:%f\t", leftCount, rightCount, nonzero, leftSum, rightSum, (int) diff, dTheta); // Var L:%3.3f\tR:%3.3f\t  , sqrt(L_div/norm), sqrt(R_div/norm));
+  printf("raw OF points L: %d\tR:%d\tnz:%d\tSUM L:%.6d\tR:%.6d\tdiff:%.6d\tdTheta:%f\t", leftCount, rightCount, nonzero, leftSum, rightSum, (int) diff, dTheta); // Var L:%3.3f\tR:%3.3f\t  , sqrt(L_div/norm), sqrt(R_div/norm));
 
   printf("θ:[+%d][-%d]\t", totalNegTheta, totalPosTheta);
 
