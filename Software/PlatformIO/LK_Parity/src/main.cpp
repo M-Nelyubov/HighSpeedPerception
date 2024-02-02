@@ -134,6 +134,14 @@ int initCamera() {
   return 0;
 }
 
+int imgIdxR = 0;
+void photo_read(){
+  char filename[32];
+  sprintf(filename, "/img/test/%d.bytes", imgIdxR);
+  File file = SD.open(filename, FILE_READ);
+  file.read(n_frame, IMAGE_ROWS*IMAGE_COLS);
+  file.close();
+}
 
 // based on take_photos writeFile
 void photo_save( void * params) {
@@ -191,38 +199,17 @@ void setup() {
 }
 
 void loop(){
-  camera_fb_t * fb = esp_camera_fb_get();    // Take Picture with camera and put in buffer
-
-  if (!fb) {
-    Serial.println("Camera capture failed");
-    return;
-  }
+  // camera_fb_t * fb = esp_camera_fb_get();    // Take Picture with camera and put in buffer
 
   // perfTimeLog("Frame buffer verified");
   // Serial.printf("Camera buffer length: %d\n", fb->len);
 
   // Transfer pixel data from the image buffer to the 2D array
-  for (int row = 0; row < IMAGE_HEIGHT; row++) {
-    for (int col = 0; col < IMAGE_WIDTH; col++) {
-      int index = (row * IMAGE_WIDTH) + col; // Calculate the index in the 1D buffer
-      n_frame[index] = fb->buf[index];    // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
-    }
-  }
-
-  // Enable for testing, disable for high speed performance without SD card
-  // if(USE_SD_CARD){photo_save();}
-  if(USE_SD_CARD && sd_loaded && !saving){
-    for (int row = 0; row < IMAGE_HEIGHT; row++) {
-      for (int col = 0; col < IMAGE_WIDTH; col++) {
-        int index = (row * IMAGE_WIDTH) + col; // Calculate the index in the 1D buffer
-        save_frame[index] = fb->buf[index];
-      }
-    }
-    saveImage();    
-  }
+  photo_read();
+  imgIdxR++;
 
   times[1] = millis();
-  esp_camera_fb_return(fb);    // Release the image buffer
+  // esp_camera_fb_return(fb);    // Release the image buffer
 
   computeFlow(p_frame, n_frame, u_vals, v_vals, corners);  // compute the consequences
   
@@ -234,6 +221,7 @@ void loop(){
 
   // update motor control outputs based on module policy
   motorControl(u_vals, v_vals, ctrl);
+  printf("img:%d ", imgIdxR);
 
   // Execute the calculated signals
   setPower(ctrl[0], ctrl[1]);
