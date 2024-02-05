@@ -34,14 +34,19 @@ void motorControl(int16_t U[IMAGE_ROWS * IMAGE_COLS], int16_t V[IMAGE_ROWS * IMA
   int points = 0;
   nonzero = 0;
 
+  // printf("U[0][0..9] = %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\t", U[0], U[1], U[2], U[3], U[4], U[5], U[6], U[7], U[8], U[9]);
+  printf("U[0][8..9] = %d, %d\t", U[8], U[9]);
+
   for(int r=0; r < IMAGE_ROWS; r++){
     for(int c=0; c < IMAGE_COLS; c++){
       int i = r * IMAGE_COLS + c;
 
       // contribute to the side's sum
       if(c < IMAGE_COLS/2) {
+        leftCount++;
         leftSum+=mag(U[i],V[i]);
       } else {
+        rightCount++;
         rightSum+=mag(U[i],V[i]);
       }       
     }

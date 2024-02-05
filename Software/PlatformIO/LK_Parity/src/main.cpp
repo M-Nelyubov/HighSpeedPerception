@@ -135,11 +135,11 @@ int initCamera() {
 }
 
 int imgIdxR = 0;
-void photo_read(){
+void photo_read(uint8_t *buf){
   char filename[32];
   sprintf(filename, "/img/test/%d.bytes", imgIdxR);
   File file = SD.open(filename, FILE_READ);
-  file.read(n_frame, IMAGE_ROWS*IMAGE_COLS);
+  file.read(buf, IMAGE_ROWS*IMAGE_COLS);
   file.close();
 }
 
@@ -205,8 +205,10 @@ void loop(){
   // Serial.printf("Camera buffer length: %d\n", fb->len);
 
   // Transfer pixel data from the image buffer to the 2D array
-  photo_read();
+  imgIdxR = 20;
+  photo_read(p_frame);
   imgIdxR++;
+  photo_read(n_frame);
 
   times[1] = millis();
   // esp_camera_fb_return(fb);    // Release the image buffer
@@ -214,10 +216,10 @@ void loop(){
   computeFlow(p_frame, n_frame, u_vals, v_vals, corners);  // compute the consequences
   
 
-  // swap frames for next shot so that the one that was just taken is kept
-  auto swap = n_frame;
-  n_frame = p_frame;
-  p_frame = swap;
+  // // swap frames for next shot so that the one that was just taken is kept
+  // auto swap = n_frame;
+  // n_frame = p_frame;
+  // p_frame = swap;
 
   // update motor control outputs based on module policy
   motorControl(u_vals, v_vals, ctrl);

@@ -153,7 +153,7 @@ void openCV_OF(Mat prvs, Mat next, Mat flow){
 void loadFsToBuffer(int i, Mat m, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
     // printf("Looking for file %d\n", i);
     char path[64];
-    sprintf(path, "D:/img/img_%d.png", i);
+    sprintf(path, "C:/Users/maste/Pictures/esp32/sequences/96x96/seq2/img_%d.png", i);
     Mat srcImg0 = imread(path, IMREAD_GRAYSCALE);
     // imshow("file", srcImg0);
     for(int i=0; i< srcImg0.rows * srcImg0.cols; i++){
@@ -209,14 +209,14 @@ int main(){
     auto control = new int[2];
     control[0] = control[1] = 80; // magic number, max pow, duty cycle time
 
-    int i=0;
+    int i=20;
     while(true){
         // Load Cycle
         capture >> srcImg1;                      // color big   original aspect ratio
         loadFsToBuffer(i,f1, p_frame);
-        i = (i+1);//%30;
-        if(i >300) return 0;
-        loadFsToBuffer(i,f2, n_frame);
+        // i = (i+1);//%30;
+        // if(i >300) return 0;
+        loadFsToBuffer(i+1,f2, n_frame);
 
 
         // Computation
