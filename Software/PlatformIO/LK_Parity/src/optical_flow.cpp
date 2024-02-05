@@ -60,6 +60,9 @@ void computeFlow(
 
     // mask - disabling UV for all non-corner values
     for(int i=0; i< IMAGE_COLS*IMAGE_ROWS;i++){
+        if(corners[i]*u_frame[i] || corners[i]*v_frame[i]){
+            printf("OF_%d:[u%d,v%d,c%d] ", i, u_frame[i], v_frame[i], corners[i]);
+        }
         u_frame[i] *= corners[i];
         v_frame[i] *= corners[i];
     }

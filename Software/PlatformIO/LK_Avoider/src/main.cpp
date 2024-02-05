@@ -224,6 +224,7 @@ void loop(){
   times[1] = millis();
   esp_camera_fb_return(fb);    // Release the image buffer
 
+  findCorners(p_frame, corners);
   computeFlow(p_frame, n_frame, u_vals, v_vals, corners);  // compute the consequences
   
 
