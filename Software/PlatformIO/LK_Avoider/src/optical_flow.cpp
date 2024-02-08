@@ -61,7 +61,7 @@ void computeFlow(
     // mask - disabling UV for all non-corner values
     for(int i=0; i< IMAGE_COLS*IMAGE_ROWS;i++){
         if(corners[i]*u_frame[i] || corners[i]*v_frame[i]){
-            printf("OF_%d:[u%d,v%d,c%d] ", i, u_frame[i], v_frame[i], corners[i]);
+            // printf("OF_%d:[u%d,v%d,c%d] ", i, u_frame[i], v_frame[i], corners[i]);
         }
         u_frame[i] *= corners[i];
         v_frame[i] *= corners[i];
@@ -477,4 +477,10 @@ void findCorners(uint8_t p_frame[IMAGE_ROWS * IMAGE_COLS], uint8_t corners[IMAGE
         }
     }
 
+    delete grad_x;
+    delete grad_y;
+
+    delete IxIx;
+    delete IxIy;
+    delete IyIy;
 }
