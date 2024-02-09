@@ -6,28 +6,28 @@
 #include <iostream>
 #include <stdio.h>
 
-using namespace cv;
+#include "object_recognition.hpp"
 
-#define IMAGE_ROWS 96
-#define IMAGE_COLS 96
+using namespace cv;
 
 #define IMG_SIZE Size(IMAGE_COLS, IMAGE_ROWS)
 #define DISP_SIZE Size(5*IMAGE_COLS, 5*IMAGE_ROWS)
 
-#define IMAGE_SIZE (IMAGE_ROWS * IMAGE_COLS)
-#define COLOR_CHANNELS 3
 
 
 void matToFrameC(Mat mat, uint8_t frame[IMAGE_SIZE * COLOR_CHANNELS]){
     // Transfer pixel data from the image buffer to the 2D array
-    for (int row = 0; row < IMAGE_ROWS; row++) {
-        for (int col = 0; col < IMAGE_COLS; col++) {
-            for (int c = 0; c < COLOR_CHANNELS; c++){
-                int index = ((row * IMAGE_COLS) + col)* COLOR_CHANNELS + c;     // Calculate the index in the 1D buffer
-                frame[index] = mat.data[index];          // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
-            }
-        }
+    for(int i=0; i< IMAGE_SIZE * COLOR_CHANNELS; i++){
+        frame[i] = mat.data[i];
     }
+    // for (int row = 0; row < IMAGE_ROWS; row++) {
+    //     for (int col = 0; col < IMAGE_COLS; col++) {
+    //         for (int c = 0; c < COLOR_CHANNELS; c++){
+    //             int index = ((row * IMAGE_COLS) + col)* COLOR_CHANNELS + c;     // Calculate the index in the 1D buffer
+    //             frame[index] = mat.data[index];          // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
+    //         }
+    //     }
+    // }
 }
 
 void frameToMatG(Mat mat, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
@@ -58,7 +58,11 @@ int main(){
         printf("Starting camera feed!");
     }
 
+    auto inputFrame = new uint8_t [IMAGE_SIZE * COLOR_CHANNELS];
+    auto outputFrame = new uint8_t [IMAGE_SIZE];
+
     while (true) {
+        // Initialization and image capture
         Mat srcImg, smlCol, bigCol, smlGry, bigGry;
         capture >> srcImg;
         
@@ -67,17 +71,31 @@ int main(){
         cvtColor(smlCol, smlGry, COLOR_BGR2GRAY); // gray small square
         cvtColor(bigCol, bigGry, COLOR_BGR2GRAY); // gray small square
 
-        Mat outputRedMask = bigGry.clone();  // the output mask of the red detection layer
+        Mat outputRedMask = smlGry.clone();  // the output mask of the red detection layer
+        Mat displayRedMask = bigGry.clone();  // the output mask of the red detection layer
 
         if(srcImg.empty()){
             printf("End of capture stream");
             break;
         }
 
+
+        // Processing
+        matToFrameC(smlCol, inputFrame);
+        extractRed(inputFrame, outputFrame);
+        frameToMatG(outputRedMask, outputFrame);
+
+
+        // Display
+        resize(outputRedMask, displayRedMask, DISP_SIZE,0,0,INTER_NEAREST);
+
+
         imshow("camera", srcImg);
         imshow("input", bigCol);
-        imshow("Red mask", outputRedMask);
+        imshow("Red mask", displayRedMask);
 
+
+        // End of cycle wait for reset
         int keyboard = waitKey(30);
         if (keyboard == 'q' || keyboard == 27)
             break;

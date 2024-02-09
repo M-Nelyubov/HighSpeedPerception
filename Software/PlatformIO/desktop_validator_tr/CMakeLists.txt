@@ -9,6 +9,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 add_executable(targetRed 
     homebrewed.cpp
+    object_recognition.cpp
 )
 
 target_link_libraries( targetRed  ${OpenCV_LIBS} )
