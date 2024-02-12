@@ -9,6 +9,7 @@
 #include "driver/rtc_io.h"
 #include "img_converters.h" // see https://github.com/espressif/esp32-camera/blob/master/conversions/include/img_converters.h
 
+#include "object_recognition.hpp"
 #include "motor_control.hpp"
 #include "motors.hpp"
 
@@ -18,7 +19,7 @@
 
 #define USE_SD_CARD 1    // set to 1 (true) for saving images
 #define perfTimeLog_en 0 // set to 1 (true) to enable more detailed logging of system state/timing
-#define STOP_ON_SD_INIT_FAIL 1  // 1 -> if the SD card fails to initialize, stop the program
+#define STOP_ON_SD_INIT_FAIL 0  // 1 -> if the SD card fails to initialize, stop the program
 
 bool sd_loaded = false;
 
@@ -29,15 +30,15 @@ bool sd_loaded = false;
 #define PIXEL_SIZE 2 // bytes
 #define IMAGE_WIDTH  IMAGE_COLS
 #define IMAGE_HEIGHT IMAGE_ROWS
+#define IMAGE_SIZE (IMAGE_ROWS * IMAGE_COLS)
 #define TIME_FRAMES  2           // how many frames back in time are kept
 
 // two instances of Two-dimensional array to hold the pixel values at consecutive time points
-auto n_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_COLORS];  // next
+auto n_frame = new uint8_t [IMAGE_SIZE * IMAGE_COLORS];  // next
+auto redMask = new uint8_t [IMAGE_SIZE]; // extraction layer for red pixels on the display
 
-auto save_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_COLORS];  // a copy of the frame data for being written to an SD card without slowing down the pipeline
+auto save_frame = new uint8_t [IMAGE_SIZE * IMAGE_COLORS];  // a copy of the frame data for being written to an SD card without slowing down the pipeline
 int saving = 0; // "Mutex" for sd card buffer save operations tracking
-
-int times[TIME_FRAMES];  // tracks the age of the frames in the frames array. 
 
 // measures of the frame-to-frame apparent motion of pixels in the view (+U -> Left, +V -> Up)
 int16_t u_vals[IMAGE_HEIGHT * IMAGE_WIDTH];
@@ -136,17 +137,17 @@ int initCamera() {
 }
 
 
-int time = 0; // alias for the time step at which the image was taken
+int fileIdx = 0; // time step at which the image was taken
 // based on take_photos writeFile
 void photo_save( void * params) {
   saving = 1;
   char filename[32];
   // char fileU[32];
   // char fileV[32];
-  time++;
-  sprintf(filename, "/raw/img/col%6d.bytes", time);
-  // sprintf(fileU,    "/raw/u/img%6d.U", time);
-  // sprintf(fileV,    "/raw/v/img%6d.V", time);
+  fileIdx++;
+  sprintf(filename, "/raw/img/col%6d.bytes", fileIdx);
+  // sprintf(fileU,    "/raw/u/img%6d.U", fileIdx);
+  // sprintf(fileV,    "/raw/v/img%6d.V", fileIdx);
   perfTimeLog("File write starting");
   if(Serial)
       Serial.printf("Beginning of writing image %s\n", filename);
@@ -209,10 +210,10 @@ void loop(){
         int i = (row * IMAGE_WIDTH) + col;
         int index = PIXEL_SIZE * i; // Calculate the index in the 1D buffer
         uint16_t pix = (fb->buf[index] << 8) | fb->buf[index+1];
-        // split up along RGB565 pattern
-        n_frame[IMAGE_COLORS * i + 0] = (pix >> 0)  & 0x001F; // B5
-        n_frame[IMAGE_COLORS * i + 1] = (pix >> 5)  & 0x003F; // G6
-        n_frame[IMAGE_COLORS * i + 2] = (pix >> 11) & 0x001F; // R5
+        // split up along RGB565 pattern, shift into alignment, then maximize up to 0-255.
+        n_frame[IMAGE_COLORS * i + 0] = ((pix >> 0)  & 0x001F) << 3; // B5
+        n_frame[IMAGE_COLORS * i + 1] = ((pix >> 5)  & 0x003F) << 2; // G6
+        n_frame[IMAGE_COLORS * i + 2] = ((pix >> 11) & 0x001F) << 3; // R5
     }
   }
 
@@ -227,11 +228,17 @@ void loop(){
 
   esp_camera_fb_return(fb);    // Release the image buffer
 
-  
+  // target search
+  extractRed(n_frame, redMask);
+  float x = (float) computeCentroidX(redMask);
+  float n = IMAGE_COLS/2; // x is in the range [0, 2n]
+  float norm_x = (x - n) / n;
+  printf("Mean x:%f Norm x:%f ",x, norm_x);
 
   // update motor control outputs based on module policy
-  int ctrl[] = {40, 20}; // experimentally determined intermediate power values to drive straight
+  int ctrl[] = {50, 30}; // experimentally determined intermediate power values to drive straight
   // motorControl(u_vals, v_vals, ctrl);
+  motorControl(norm_x, ctrl);
 
   // Execute the calculated signals
   setPower(ctrl[0], ctrl[1]);

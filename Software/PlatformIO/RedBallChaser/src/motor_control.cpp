@@ -64,3 +64,11 @@ void motorControl(int16_t U[IMAGE_ROWS * IMAGE_COLS], int16_t V[IMAGE_ROWS * IMA
   ctrl[1] = 100 - leftCount;
   ctrl[0] = 100 - rightCount;
 }
+
+void motorControl(float x, int ctrl[2]){
+  // direct proportional control adjustment based on position
+  // for x = 1, the ball is to the right, so turn right with ctrl R ++
+  // for x = 1, the ball is to the left, so turn left with ctrl L ++
+  ctrl[0] -= (int) (30.0f * x);
+  ctrl[1] += (int) (30.0f * x);
+}
