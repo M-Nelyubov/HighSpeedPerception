@@ -9,7 +9,6 @@
 #include "driver/rtc_io.h"
 #include "img_converters.h" // see https://github.com/espressif/esp32-camera/blob/master/conversions/include/img_converters.h
 
-#include "optical_flow.hpp"
 #include "motor_control.hpp"
 #include "motors.hpp"
 
@@ -19,20 +18,23 @@
 
 #define USE_SD_CARD 1    // set to 1 (true) for saving images
 #define perfTimeLog_en 0 // set to 1 (true) to enable more detailed logging of system state/timing
-#define STOP_ON_SD_INIT_FAIL 0  // 1 -> if the SD card fails to initialize, stop the program
+#define STOP_ON_SD_INIT_FAIL 1  // 1 -> if the SD card fails to initialize, stop the program
 
 bool sd_loaded = false;
 
+// Image Dimensions
+#define IMAGE_ROWS 96
+#define IMAGE_COLS 96
+#define IMAGE_COLORS 3
+#define PIXEL_SIZE 2 // bytes
 #define IMAGE_WIDTH  IMAGE_COLS
 #define IMAGE_HEIGHT IMAGE_ROWS
 #define TIME_FRAMES  2           // how many frames back in time are kept
 
 // two instances of Two-dimensional array to hold the pixel values at consecutive time points
-auto p_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // prior
-auto n_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // next
-auto corners = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // corners between the two frames
+auto n_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_COLORS];  // next
 
-auto save_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH];  // a copy of the frame data for being written to an SD card without slowing down the pipeline
+auto save_frame = new uint8_t [IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_COLORS];  // a copy of the frame data for being written to an SD card without slowing down the pipeline
 int saving = 0; // "Mutex" for sd card buffer save operations tracking
 
 int times[TIME_FRAMES];  // tracks the age of the frames in the frames array. 
@@ -117,7 +119,7 @@ int initCamera() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.frame_size = FRAMESIZE_96X96; // _QVGA -> (320 x 240)   _96X96 -> (96 x 96)
-  config.pixel_format = PIXFORMAT_GRAYSCALE; // changed to grayscale
+  config.pixel_format = PIXFORMAT_RGB565; // PIXFORMAT_GRAYSCALE; // changed to grayscale
   config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   config.fb_location = CAMERA_FB_IN_PSRAM;
   config.jpeg_quality = 12; //this can be adjusted to create lower or higher quality images
@@ -134,23 +136,24 @@ int initCamera() {
 }
 
 
+int time = 0; // alias for the time step at which the image was taken
 // based on take_photos writeFile
 void photo_save( void * params) {
   saving = 1;
   char filename[32];
-  char fileU[32];
-  char fileV[32];
-  int time = times[1];
-  sprintf(filename, "/raw/img/img%6d.bytes", time);
-  sprintf(fileU,    "/raw/u/img%6d.U", time);
-  sprintf(fileV,    "/raw/v/img%6d.V", time);
+  // char fileU[32];
+  // char fileV[32];
+  time++;
+  sprintf(filename, "/raw/img/col%6d.bytes", time);
+  // sprintf(fileU,    "/raw/u/img%6d.U", time);
+  // sprintf(fileV,    "/raw/v/img%6d.V", time);
   perfTimeLog("File write starting");
   if(Serial)
       Serial.printf("Beginning of writing image %s\n", filename);
 
   File file = SD.open(filename, FILE_WRITE);    
   Serial.printf("File Object created.  Writing...\n");
-  file.write(save_frame, IMAGE_WIDTH*IMAGE_HEIGHT);
+  file.write(save_frame, IMAGE_WIDTH * IMAGE_HEIGHT * IMAGE_COLORS);
   Serial.printf("File write complete\n");
   file.close();
   Serial.printf("File closed\n");
@@ -203,37 +206,32 @@ void loop(){
   // Transfer pixel data from the image buffer to the 2D array
   for (int row = 0; row < IMAGE_HEIGHT; row++) {
     for (int col = 0; col < IMAGE_WIDTH; col++) {
-      int index = (row * IMAGE_WIDTH) + col; // Calculate the index in the 1D buffer
-      n_frame[index] = fb->buf[index];    // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
+        int i = (row * IMAGE_WIDTH) + col;
+        int index = PIXEL_SIZE * i; // Calculate the index in the 1D buffer
+        uint16_t pix = (fb->buf[index] << 8) | fb->buf[index+1];
+        // split up along RGB565 pattern
+        n_frame[IMAGE_COLORS * i + 0] = (pix >> 0)  & 0x001F; // B5
+        n_frame[IMAGE_COLORS * i + 1] = (pix >> 5)  & 0x003F; // G6
+        n_frame[IMAGE_COLORS * i + 2] = (pix >> 11) & 0x001F; // R5
     }
   }
 
   // Enable for testing, disable for high speed performance without SD card
   // if(USE_SD_CARD){photo_save();}
   if(USE_SD_CARD && sd_loaded && !saving){
-    for (int row = 0; row < IMAGE_HEIGHT; row++) {
-      for (int col = 0; col < IMAGE_WIDTH; col++) {
-        int index = (row * IMAGE_WIDTH) + col; // Calculate the index in the 1D buffer
-        save_frame[index] = fb->buf[index];
-      }
+    for(int i=0; i< IMAGE_ROWS*IMAGE_COLS*IMAGE_COLORS; i++){
+      save_frame[i] = n_frame[i];
     }
     saveImage();    
   }
 
-  times[1] = millis();
   esp_camera_fb_return(fb);    // Release the image buffer
 
-  computeFlow(p_frame, n_frame, u_vals, v_vals, corners);  // compute the consequences
   
 
-  // swap frames for next shot so that the one that was just taken is kept
-  auto swap = n_frame;
-  n_frame = p_frame;
-  p_frame = swap;
-
   // update motor control outputs based on module policy
-  int ctrl[] = {0,0};
-  motorControl(u_vals, v_vals, ctrl);
+  int ctrl[] = {40, 20}; // experimentally determined intermediate power values to drive straight
+  // motorControl(u_vals, v_vals, ctrl);
 
   // Execute the calculated signals
   setPower(ctrl[0], ctrl[1]);
