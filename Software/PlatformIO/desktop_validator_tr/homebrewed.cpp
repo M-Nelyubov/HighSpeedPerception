@@ -35,11 +35,30 @@ void frameToMatG(Mat mat, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
     for (int row = 0; row < IMAGE_ROWS; row++) {
         for (int col = 0; col < IMAGE_COLS; col++) {
             int index = (row * IMAGE_COLS) + col;     // Calculate the index in the 1D buffer
-            mat.data[index] = frame[index];          // Copy the pixel value to the 2D array and put a 1 if above threshold, otherwise 0
+            mat.data[index] = frame[index];
         }
     }
 }
 
+void frameToMatC(Mat mat, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
+    // Transfer pixel data from the image buffer to the 2D array
+    for (int row = 0; row < IMAGE_ROWS; row++) {
+        for (int col = 0; col < IMAGE_COLS; col++) {
+            int index = (row * IMAGE_COLS) + col;     // Calculate the index in the 1D buffer
+            mat.data[COLOR_CHANNELS*index+0] = frame[index];          // B
+            mat.data[COLOR_CHANNELS*index+1] = frame[index];          // G
+            mat.data[COLOR_CHANNELS*index+2] = frame[index];          // R
+        }
+    }
+}
+
+void drawCentroid(Mat mask, int x){
+    int col = x;
+    for(int row = 0; row < IMAGE_ROWS; row++){
+        int index = COLOR_CHANNELS *( (row * IMAGE_COLS) + col) + 1; // (1) green channel
+        mask.data[index] = 0x80;                   // max brightness
+    }
+}
 
 void zero(int8_t *data, int len){
     for(int i=0;i<len;i++){
@@ -71,8 +90,8 @@ int main(){
         cvtColor(smlCol, smlGry, COLOR_BGR2GRAY); // gray small square
         cvtColor(bigCol, bigGry, COLOR_BGR2GRAY); // gray small square
 
-        Mat outputRedMask = smlGry.clone();  // the output mask of the red detection layer
-        Mat displayRedMask = bigGry.clone();  // the output mask of the red detection layer
+        Mat outputRedMask = smlCol.clone();  // the output mask of the red detection layer
+        Mat displayRedMask = bigCol.clone();  // the output mask of the red detection layer
 
         if(srcImg.empty()){
             printf("End of capture stream");
@@ -83,8 +102,11 @@ int main(){
         // Processing
         matToFrameC(smlCol, inputFrame);
         extractRed(inputFrame, outputFrame);
-        frameToMatG(outputRedMask, outputFrame);
+        frameToMatC(outputRedMask, outputFrame);
 
+        int x = computeCentroidX(outputFrame);
+        printf("Drawing centroid at %d\t",x);
+        drawCentroid(outputRedMask, x);
 
         // Display
         resize(outputRedMask, displayRedMask, DISP_SIZE,0,0,INTER_NEAREST);

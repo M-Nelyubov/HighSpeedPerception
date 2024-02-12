@@ -7,3 +7,5 @@
 #define COLOR_CHANNELS 3
 
 void extractRed(uint8_t inputFrame [IMAGE_SIZE * COLOR_CHANNELS], uint8_t outputFrame [IMAGE_SIZE]);
+
+int computeCentroidX(uint8_t outputFrame [IMAGE_SIZE]);

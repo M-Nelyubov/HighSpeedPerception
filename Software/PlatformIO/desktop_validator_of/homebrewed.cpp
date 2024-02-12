@@ -39,7 +39,6 @@ void matToFrame(Mat mat, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
     }
 }
 
-
 void frameToMat(Mat mat, int16_t frame[IMAGE_ROWS * IMAGE_COLS]){
     // Transfer pixel data from the 2D array to the image buffer
     // mat = ;
