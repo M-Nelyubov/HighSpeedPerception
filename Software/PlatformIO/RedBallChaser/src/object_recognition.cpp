@@ -20,16 +20,20 @@ void extractRed(uint8_t inputFrame [IMAGE_SIZE * COLOR_CHANNELS], uint8_t output
     }
 }
 
-int computeCentroidX(uint8_t magnitudeFrame [IMAGE_SIZE]){
-    float mean = 0;
-    float sum = 0.1f;
+void computeCentroidX(uint8_t magnitudeFrame [IMAGE_SIZE], float *x, float *magIn){
+    /**
+     * Output pointers to variables x and magnitude
+    */
+    float xfx = 0;
+    float mag = 0.1f;
     for (int row = 0; row < IMAGE_ROWS; row++) {
         for (int col = 0; col < IMAGE_COLS; col++) {
             int index = (row * IMAGE_COLS) + col;     // Calculate the index in the 1D buffer
-            mean += col * magnitudeFrame[index];
-            sum += magnitudeFrame[index];
+            xfx += col * magnitudeFrame[index];
+            mag += magnitudeFrame[index];
         }
     }
 
-    return (int) (mean / sum);
+    x[0] = (xfx / mag);
+    magIn[0] = mag;
 }

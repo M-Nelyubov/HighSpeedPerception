@@ -65,10 +65,23 @@ void motorControl(int16_t U[IMAGE_ROWS * IMAGE_COLS], int16_t V[IMAGE_ROWS * IMA
   ctrl[0] = 100 - rightCount;
 }
 
-void motorControl(float x, int ctrl[2]){
+void motorControl(float x, float mag, int ctrl[2]){
+  // When not detecting a target, don't move.
+  if(mag < 1000){
+    ctrl[0] = ctrl[1] = 0;
+    return;
+  }
+
+  if(abs(x) > .5){
+  // steering at the outer edges (|x| > .5)
   // direct proportional control adjustment based on position
   // for x = 1, the ball is to the right, so turn right with ctrl R ++
   // for x = 1, the ball is to the left, so turn left with ctrl L ++
-  ctrl[0] -= (int) (30.0f * x);
-  ctrl[1] += (int) (30.0f * x);
+  ctrl[0] -= (int) (70.0f * x);
+  ctrl[1] += (int) (70.0f * x);
+  } else {
+    // at the inner/central midpoint, aim more directly to just go full speed ahead 
+    ctrl[0] = 70 - (int)(10.0f * x);
+    ctrl[1] = 50 + (int)(10.0f * x);
+  }
 }

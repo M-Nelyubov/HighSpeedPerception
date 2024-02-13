@@ -29,7 +29,7 @@ void motorControl(int16_t U[IMAGE_ROWS * IMAGE_COLS],
  *          Entry at index: 0 - left motor.  1 - right motor.
  *          Values: 0 - off. 100 - fully forward.  -100 - fully backward.
 */
-void motorControl(float x, int ctrl[2]);
+void motorControl(float x, float mag, int ctrl[2]);
 
 /**
  * The rule for whether or not a flow point has breached the critical threshold for motion to be counted torward the limit at which a motor should stop

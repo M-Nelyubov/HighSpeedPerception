@@ -230,15 +230,16 @@ void loop(){
 
   // target search
   extractRed(n_frame, redMask);
-  float x = (float) computeCentroidX(redMask);
+  float x,mag;
+  computeCentroidX(redMask, &x, &mag);
   float n = IMAGE_COLS/2; // x is in the range [0, 2n]
   float norm_x = (x - n) / n;
-  printf("Mean x:%f Norm x:%f ",x, norm_x);
+  printf("Mean x:%f Norm x:%f Mag:%f ",x, norm_x, mag);
 
   // update motor control outputs based on module policy
-  int ctrl[] = {50, 30}; // experimentally determined intermediate power values to drive straight
+  int ctrl[] = {70, 50}; // experimentally determined intermediate power values to drive straight
   // motorControl(u_vals, v_vals, ctrl);
-  motorControl(norm_x, ctrl);
+  motorControl(norm_x, mag, ctrl);
 
   // Execute the calculated signals
   setPower(ctrl[0], ctrl[1]);
