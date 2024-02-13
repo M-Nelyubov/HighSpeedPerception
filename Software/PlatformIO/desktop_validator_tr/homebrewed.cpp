@@ -52,6 +52,34 @@ void frameToMatC(Mat mat, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
     }
 }
 
+void frameToMatClusters(Mat mat, uint8_t frame[IMAGE_ROWS * IMAGE_COLS]){
+    // Transfer pixel data from the image buffer to the 2D array
+    for (int row = 0; row < IMAGE_ROWS; row++) {
+        for (int col = 0; col < IMAGE_COLS; col++) {
+            int index = (row * IMAGE_COLS) + col;     // Calculate the index in the 1D buffer
+
+            // find the size of the pattern to repeat
+            uint8_t size = 1;
+            int base = frame[index];
+            int mask = 0x1;
+            while((base & mask) != base){
+                // printf("Base:%x Mask:%")
+                size++;
+                mask = (mask << 1) | 0x1;
+            }
+
+            // repeat the pattern to fill up the bitspace
+            for(int i=0; i<8; i++){
+                base = base | (base << size); size *=2;
+            }
+
+            mat.data[COLOR_CHANNELS*index+0] = (base >> 0)  & 0xFF;    // B
+            mat.data[COLOR_CHANNELS*index+1] = (base >> 8)  & 0xFF;    // G
+            mat.data[COLOR_CHANNELS*index+2] = (base >> 16) & 0xFF;    // R
+        }
+    }
+}
+
 void drawCentroid(Mat mask, int x){
     int col = x;
     for(int row = 0; row < IMAGE_ROWS; row++){
@@ -77,8 +105,9 @@ int main(){
         printf("Starting camera feed!");
     }
 
-    auto inputFrame = new uint8_t [IMAGE_SIZE * COLOR_CHANNELS];
-    auto outputFrame = new uint8_t [IMAGE_SIZE];
+    auto smlCameraFrame = new uint8_t [IMAGE_SIZE * COLOR_CHANNELS];
+    auto redMaskCameraFrame = new uint8_t [IMAGE_SIZE];
+    auto redClustersFrame = new uint8_t [IMAGE_SIZE];
 
     while (true) {
         // Initialization and image capture
@@ -93,6 +122,9 @@ int main(){
         Mat outputRedMask = smlCol.clone();  // the output mask of the red detection layer
         Mat displayRedMask = bigCol.clone();  // the output mask of the red detection layer
 
+        Mat smlClusters = smlCol.clone();
+        Mat bigClusters = smlCol.clone();
+
         if(srcImg.empty()){
             printf("End of capture stream");
             break;
@@ -100,21 +132,29 @@ int main(){
 
 
         // Processing
-        matToFrameC(smlCol, inputFrame);
-        extractRed(inputFrame, outputFrame);
-        frameToMatC(outputRedMask, outputFrame);
+        matToFrameC(smlCol, smlCameraFrame);
+        extractRed(smlCameraFrame, redMaskCameraFrame);
+        frameToMatC(outputRedMask, redMaskCameraFrame);
 
-        int x = computeCentroidX(outputFrame);
-        printf("Drawing centroid at %d\t",x);
+        clusterPatches(redMaskCameraFrame, redClustersFrame);
+        frameToMatClusters(smlClusters, redClustersFrame);
+        
+
+        float x,mag;
+        computeCentroidX(redMaskCameraFrame, &x, &mag);
+        // printf("Drawing centroid at %d\t", (int) x);
         drawCentroid(outputRedMask, x);
+
 
         // Display
         resize(outputRedMask, displayRedMask, DISP_SIZE,0,0,INTER_NEAREST);
+        resize(smlClusters, bigClusters, DISP_SIZE, 0, 0, INTER_NEAREST);
 
 
         imshow("camera", srcImg);
         imshow("input", bigCol);
         imshow("Red mask", displayRedMask);
+        imshow("Red Clusters", bigClusters);
 
 
         // End of cycle wait for reset
