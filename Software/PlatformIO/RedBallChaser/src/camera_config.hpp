@@ -1,11 +1,7 @@
 #ifndef cameraConfig_hpp
 #define cameraConfig_hpp
 
-// Image Dimensions
-#define IMAGE_ROWS 96
-#define IMAGE_COLS 96
-
-
+#define CAMERA_FRAME_SIZE FRAMESIZE_96X96
 // Frame names from sensor.h:
     // FRAMESIZE_96X96,    // 96x96
     // FRAMESIZE_QQVGA,    // 160x120
@@ -21,5 +17,17 @@
     // FRAMESIZE_HD,       // 1280x720
     // FRAMESIZE_SXGA,     // 1280x1024
     // FRAMESIZE_UXGA,     // 1600x1200
+
+
+// Image Dimensions
+#define IMAGE_COLS 96
+#define IMAGE_ROWS 96
+#define IMAGE_SIZE (IMAGE_ROWS * IMAGE_COLS)
+#define COLOR_CHANNELS 3
+#define IMAGE_WIDTH  IMAGE_COLS
+#define IMAGE_HEIGHT IMAGE_ROWS
+#define PIXEL_SIZE 2 // bytes
+
+
 
 #endif

@@ -20,24 +20,18 @@
 #define USE_SD_CARD 1    // set to 1 (true) for saving images
 #define perfTimeLog_en 0 // set to 1 (true) to enable more detailed logging of system state/timing
 #define STOP_ON_SD_INIT_FAIL 0  // 1 -> if the SD card fails to initialize, stop the program
+#define RETRY_SD_INIT 1  //        1 -> if at first the SD didn't init, retry it while running. 0 -> if first init failed, don't worry about SD
 
 bool sd_loaded = false;
 
 // Image Dimensions
-#define IMAGE_ROWS 96
-#define IMAGE_COLS 96
-#define IMAGE_COLORS 3
-#define PIXEL_SIZE 2 // bytes
-#define IMAGE_WIDTH  IMAGE_COLS
-#define IMAGE_HEIGHT IMAGE_ROWS
-#define IMAGE_SIZE (IMAGE_ROWS * IMAGE_COLS)
 #define TIME_FRAMES  2           // how many frames back in time are kept
 
 // two instances of Two-dimensional array to hold the pixel values at consecutive time points
-auto n_frame = new uint8_t [IMAGE_SIZE * IMAGE_COLORS];  // next
+auto n_frame = new uint8_t [IMAGE_SIZE * COLOR_CHANNELS];  // next
 auto redMask = new uint8_t [IMAGE_SIZE]; // extraction layer for red pixels on the display
 
-auto save_frame = new uint8_t [IMAGE_SIZE * IMAGE_COLORS];  // a copy of the frame data for being written to an SD card without slowing down the pipeline
+auto save_frame = new uint8_t [IMAGE_SIZE * COLOR_CHANNELS];  // a copy of the frame data for being written to an SD card without slowing down the pipeline
 int saving = 0; // "Mutex" for sd card buffer save operations tracking
 
 // measures of the frame-to-frame apparent motion of pixels in the view (+U -> Left, +V -> Up)
@@ -119,7 +113,7 @@ int initCamera() {
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
-  config.frame_size = FRAMESIZE_96X96; // _QVGA -> (320 x 240)   _96X96 -> (96 x 96)
+  config.frame_size = CAMERA_FRAME_SIZE; // _QVGA -> (320 x 240)   _96X96 -> (96 x 96)
   config.pixel_format = PIXFORMAT_RGB565; // PIXFORMAT_GRAYSCALE; // changed to grayscale
   config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   config.fb_location = CAMERA_FB_IN_PSRAM;
@@ -154,7 +148,7 @@ void photo_save( void * params) {
 
   File file = SD.open(filename, FILE_WRITE);    
   Serial.printf("File Object created.  Writing...\n");
-  file.write(save_frame, IMAGE_WIDTH * IMAGE_HEIGHT * IMAGE_COLORS);
+  file.write(save_frame, IMAGE_WIDTH * IMAGE_HEIGHT * COLOR_CHANNELS);
   Serial.printf("File write complete\n");
   file.close();
   Serial.printf("File closed\n");
@@ -211,16 +205,17 @@ void loop(){
         int index = PIXEL_SIZE * i; // Calculate the index in the 1D buffer
         uint16_t pix = (fb->buf[index] << 8) | fb->buf[index+1];
         // split up along RGB565 pattern, shift into alignment, then maximize up to 0-255.
-        n_frame[IMAGE_COLORS * i + 0] = ((pix >> 0)  & 0x001F) << 3; // B5
-        n_frame[IMAGE_COLORS * i + 1] = ((pix >> 5)  & 0x003F) << 2; // G6
-        n_frame[IMAGE_COLORS * i + 2] = ((pix >> 11) & 0x001F) << 3; // R5
+        n_frame[COLOR_CHANNELS * i + 0] = ((pix >> 0)  & 0x001F) << 3; // B5
+        n_frame[COLOR_CHANNELS * i + 1] = ((pix >> 5)  & 0x003F) << 2; // G6
+        n_frame[COLOR_CHANNELS * i + 2] = ((pix >> 11) & 0x001F) << 3; // R5
     }
   }
 
   // Enable for testing, disable for high speed performance without SD card
   // if(USE_SD_CARD){photo_save();}
+  if(USE_SD_CARD && !sd_loaded && RETRY_SD_INIT) configureSD();
   if(USE_SD_CARD && sd_loaded && !saving){
-    for(int i=0; i< IMAGE_ROWS*IMAGE_COLS*IMAGE_COLORS; i++){
+    for(int i=0; i< IMAGE_ROWS*IMAGE_COLS*COLOR_CHANNELS; i++){
       save_frame[i] = n_frame[i];
     }
     saveImage();
