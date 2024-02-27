@@ -223,7 +223,7 @@ void loop(){
     for(int i=0; i< IMAGE_ROWS*IMAGE_COLS*IMAGE_COLORS; i++){
       save_frame[i] = n_frame[i];
     }
-    saveImage();    
+    saveImage();
   }
 
   esp_camera_fb_return(fb);    // Release the image buffer
