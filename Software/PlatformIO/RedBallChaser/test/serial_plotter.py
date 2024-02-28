@@ -37,6 +37,10 @@ while True:
 
     print(f"Read components: {components}")
 
+    # Junk data
+    if "cam_hal" in line:
+        continue
+
     if len(components) == 0:
         continue
 
