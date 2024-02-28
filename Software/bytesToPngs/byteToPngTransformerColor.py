@@ -15,8 +15,8 @@ files = os.listdir(base)
 def relu(x):
     return np.clip(16*x, 0, 254)
 
-key = 0
-i=0
+i = 0
+print(f"Found {len(files)} files")
 while True:
     i = i % len(files)
     file = files[i]
@@ -38,7 +38,27 @@ while True:
         print(f"R min:{np.min(rs)} max:{np.max(rs)} avg:{np.mean(rs)}", end="\t")
         print(f"G min:{np.min(gs)} max:{np.max(gs)}", end="\t")
         print(f"B min:{np.min(bs)} max:{np.max(bs)}", end="\t")
-        print("Rmap shape=", rmap.shape, "Rmap avg=", np.mean(rmap), end="\t")
+        print("Rmap shape=", rmap.shape, "Rmap avg=", np.mean(rmap), "Rmap sum=", np.sum(rmap), end="\t")
+
+        print("")
+        # Generate cmap
+        cmap = grid.copy()
+        for j in range(3):
+            cmap[:,:,j] = rmap
+
+        sums = np.zeros(DISPLAY_COLS)
+        xfx = np.zeros(DISPLAY_COLS)
+        for c in range(DISPLAY_COLS):
+            # print(f"Rmap[:,{c}]=", rmap[:,c])
+            sums[c] = np.sum(rmap[:,c])
+            xfx[c] = sums[c] * c
+        # print("xfx:", xfx)
+        # print("sums:", sums)
+        meanX = int(np.sum(xfx) / (.0001+ np.sum(sums)))
+        # print("meanX:", meanX)
+
+        # Draw the green line
+        cmap[:,meanX,1] = 255
         
         print(f"Read length: {file}")
         # img = cv2.imdecode(grid, cv2.IMREAD_UNCHANGED) # https://www.geeksforgeeks.org/python-opencv-imdecode-function/
@@ -47,16 +67,20 @@ while True:
         cv2.imshow("g", gs.astype("uint8"))
         cv2.imshow("r", rs.astype("uint8"))
         cv2.imshow("rmap", rmap.astype("uint8"))
+        cv2.imshow("cmap", cmap.astype("uint8"))
 
         # wait and escape sequence from homebrewed
         key = cv2.waitKey(5000)
+        if key == 113 or key == 27:  # 113 = q, 27 = ctrl c
+            break
+
         if key == 97: # 'a'
             i-=1
+            print(key, i)
             continue
 
         if key > 0:
-            print(key)
+            print(key, i)
             i+=1
+            continue
         
-        if key == 113 or key == 27:  # 113 = q, 27 = ctrl c
-            break

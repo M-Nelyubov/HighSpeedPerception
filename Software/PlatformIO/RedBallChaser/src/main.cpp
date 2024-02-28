@@ -20,7 +20,7 @@
 #define USE_SD_CARD 1    // set to 1 (true) for saving images
 #define perfTimeLog_en 0 // set to 1 (true) to enable more detailed logging of system state/timing
 #define STOP_ON_SD_INIT_FAIL 0  // 1 -> if the SD card fails to initialize, stop the program
-#define RETRY_SD_INIT 1  //        1 -> if at first the SD didn't init, retry it while running. 0 -> if first init failed, don't worry about SD
+#define RETRY_SD_INIT 0  //        1 -> if at first the SD didn't init, retry it while running. 0 -> if first init failed, don't worry about SD
 
 bool sd_loaded = false;
 
@@ -229,7 +229,7 @@ void loop(){
   computeCentroidX(redMask, &x, &mag);
   float n = IMAGE_COLS/2; // x is in the range [0, 2n]
   float norm_x = (x - n) / n;
-  printf("Mean x:%f Norm x:%f Mag:%f ",x, norm_x, mag);
+  printf("Mean_x:%.2f Norm_x:%.2f Mag:%.2f ",x, norm_x, mag);
 
   // update motor control outputs based on module policy
   int ctrl[] = {70, 50}; // experimentally determined intermediate power values to drive straight
@@ -238,5 +238,5 @@ void loop(){
 
   // Execute the calculated signals
   setPower(ctrl[0], ctrl[1]);
-  printf("Motors: L:%d,R:%d\n", ctrl[0],ctrl[1]);  
+  printf("MotorL:%d MotorR:%d\r\n", ctrl[0],ctrl[1]);  
 }

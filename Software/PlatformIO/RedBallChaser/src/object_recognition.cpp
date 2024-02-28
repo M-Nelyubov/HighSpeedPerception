@@ -13,7 +13,7 @@ void extractRed(uint8_t inputFrame [IMAGE_SIZE * COLOR_CHANNELS], uint8_t output
         int g = inputFrame[ii + GCI];
         int b = inputFrame[ii + BCI];
 
-        outputFrame[oi] = (r > g+b) ? (r - (g+b)) : 0;
+        outputFrame[oi] = (r > g+b) ? (r - (3*(g+b)/4)) : 0;
     }
 }
 
