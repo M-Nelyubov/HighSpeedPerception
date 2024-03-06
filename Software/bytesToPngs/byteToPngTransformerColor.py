@@ -24,15 +24,15 @@ def radialPercent(image, x,y,r):
     lX = max(0, x - r)
     uX = min(DISPLAY_COLS, x + r)
     s = 0
-    print(image[lX:uX, uY:lY])
-    print(np.sum(image))
+    # print(image[lX:uX, uY:lY])
+    # print(np.sum(image))
     for x in range(lX, uX):
         for y in range(uY, lY):
             if image[y,x] > 0:
                 s+=1
 
     p = s / ((uX - lX) * (lY - uY))
-    print(f"r:{r} s:{s} p:{p} uY:{uY} lY:{lY} uX:{uX} lX:{lX}", end="\t")
+    # print(f"r:{r} s:{s} p:{p} uY:{uY} lY:{lY} uX:{uX} lX:{lX}", end="\t")
     return p
 
 
@@ -55,7 +55,7 @@ while True:
         g = grid.astype("int16"); g[:,:,0]=0; g[:,:,2] = 0; gs = g[:,:,1]
         r = grid.astype("int16"); r[:,:,1]=0; r[:,:,0] = 0; rs = r[:,:,2]
 
-        rmap = relu(rs - 0.6 * (gs+bs))
+        rmap = relu(rs - 0.65 * (gs+bs))
         print(f"R min:{np.min(rs)} max:{np.max(rs)} avg:{np.mean(rs)}", end="\t")
         print(f"G min:{np.min(gs)} max:{np.max(gs)}", end="\t")
         print(f"B min:{np.min(bs)} max:{np.max(bs)}", end="\t")
@@ -98,7 +98,7 @@ while True:
                 # normalizing p by the expected portion for an ideal circle, the p acts as an error signal
                 p = radialPercent(rmap, meanX, meanY, r) - np.pi / 4
                 explored[r] = p
-                print(f"rad {r} -> {p}")
+                # print(f"rad {r} -> {p}")
                 if p > 0:
                     r+=1
                 if p < 0:
