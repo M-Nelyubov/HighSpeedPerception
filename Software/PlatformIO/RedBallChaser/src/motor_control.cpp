@@ -3,6 +3,12 @@
 
 #define sq(x) (x)*(x)
 
+
+// x pose - the position of the x angle at a particular timestep
+#define POSE_BUFFER_LENGTH 3
+auto x_pose_buff = new float [POSE_BUFFER_LENGTH];
+int xpbi = 0;  // x_pose buffer index
+
 int nonzero = 0;
 
 int16_t rule(int u, int v){
@@ -66,22 +72,41 @@ void motorControl(int16_t U[IMAGE_ROWS * IMAGE_COLS], int16_t V[IMAGE_ROWS * IMA
 }
 
 void motorControl(float x, float mag, int ctrl[2]){
+  xpbi %= POSE_BUFFER_LENGTH;
+
   // When not detecting a target, don't move.
-  if(mag < 1000){
+  if(mag < IMAGE_ROWS * IMAGE_COLS){
     ctrl[0] = ctrl[1] = 0;
+    x_pose_buff[xpbi++] = 0;  // start to clear out the pose buffer
     return;
   }
 
-  if(abs(x) > .5){
+  x_pose_buff[xpbi++] = x;
+
+  // determine desired angle to maintain based on historic non-zero angles
+  float sum = 0;
+  float n=0;
+  for(int i=0; i<POSE_BUFFER_LENGTH;i++){
+    float xi = x_pose_buff[i];
+    if(xi != 0){
+      sum += x - xi;
+      n++;
+    }
+  }
+  
+  // if(n==0) return;  // do nothing for the first frame
+  float e = sum / n;   // error - a measure of how much (on average) the current pose deviates from the prior ones
+
+  if(abs(e) > .5){
   // steering at the outer edges (|x| > .5)
   // direct proportional control adjustment based on position
   // for x = 1, the ball is to the right, so turn right with ctrl R ++
   // for x = 1, the ball is to the left, so turn left with ctrl L ++
-  ctrl[0] -= (int) (70.0f * x);
-  ctrl[1] += (int) (70.0f * x);
+  ctrl[0] -= (int) (70.0f * e);
+  ctrl[1] += (int) (70.0f * e);
   } else {
     // at the inner/central midpoint, aim more directly to just go full speed ahead 
-    ctrl[0] = 70 - (int)(10.0f * x);
-    ctrl[1] = 50 + (int)(10.0f * x);
+    ctrl[0] = 70 - (int)(10.0f * e);
+    ctrl[1] = 50 + (int)(10.0f * e);
   }
 }
