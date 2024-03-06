@@ -8,7 +8,7 @@
     // FRAMESIZE_QCIF,     // 176x144
     // FRAMESIZE_HQVGA,    // 240x176
     // FRAMESIZE_240X240,  // 240x240
-    // FRAMESIZE_QVGA,     // 320x240
+    // FRAMESIZE_QVGA,     // 320x240 // largest 12.5 fps
     // FRAMESIZE_CIF,      // 400x296
     // FRAMESIZE_HVGA,     // 480x320
     // FRAMESIZE_VGA,      // 640x480
