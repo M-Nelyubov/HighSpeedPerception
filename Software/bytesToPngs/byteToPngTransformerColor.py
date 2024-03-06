@@ -105,7 +105,6 @@ while True:
                 r = 20 # pixel buffer around the center of the circle
                 p = 0
                 explored = {}
-                # p == 0 and
                 while r not in explored and r > 0 and r < DISPLAY_ROWS:   # assumes concave distribution of p across argument r
                     # normalizing p by the expected portion for an ideal circle, the p acts as an error signal
                     # tolerance - some additional factor of acceptable degradation beyond an ideal circle. [0-1]
