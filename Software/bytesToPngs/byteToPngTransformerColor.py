@@ -46,19 +46,25 @@ while True:
         for j in range(3):
             cmap[:,:,j] = rmap
 
-        sums = np.zeros(DISPLAY_COLS)
+        # Compute X Mean
+        sumsX = np.zeros(DISPLAY_COLS)
         xfx = np.zeros(DISPLAY_COLS)
         for c in range(DISPLAY_COLS):
-            # print(f"Rmap[:,{c}]=", rmap[:,c])
-            sums[c] = np.sum(rmap[:,c])
-            xfx[c] = sums[c] * c
-        # print("xfx:", xfx)
-        # print("sums:", sums)
-        meanX = int(np.sum(xfx) / (.0001+ np.sum(sums)))
-        # print("meanX:", meanX)
+            sumsX[c] = np.sum(rmap[:,c])
+            xfx[c] = sumsX[c] * c
+        meanX = int(np.sum(xfx) / (.0001+ np.sum(sumsX)))
+
+        # Compute Y Mean
+        sumsY = np.zeros(DISPLAY_COLS)
+        yfy = np.zeros(DISPLAY_COLS)
+        for r in range(DISPLAY_ROWS):
+            sumsY[r] = np.sum(rmap[r,:])
+            yfy[r] = sumsY[r] * r
+        meanY = int(np.sum(yfy) / (.0001+ np.sum(sumsY)))
 
         # Draw the green line
         cmap[:,meanX,1] = 255
+        cmap[meanY,:,1] = 255
         
         print(f"Read length: {file}")
         # img = cv2.imdecode(grid, cv2.IMREAD_UNCHANGED) # https://www.geeksforgeeks.org/python-opencv-imdecode-function/
